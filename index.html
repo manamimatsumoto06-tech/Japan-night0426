@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kurenaido&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap" rel="stylesheet">
 <title>Japan Night Dress-Up</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -225,9 +225,9 @@ const o=OUTFITS.find(o=>o.id===sel.outfit);if(o?.img&&images[o.img])ctx.drawImag
 if(sel.item!=='none'){const i=ITEMS.find(i=>i.id===sel.item);if(i?.img&&images[i.img])ctx.drawImage(images[i.img],0,0,W,H);}
 if(sel.buddy!=='none'){const b=BUDDIES.find(b=>b.id===sel.buddy);if(b?.img&&images[b.img])ctx.drawImage(images[b.img],0,0,W,H);}
 ctx.fillStyle='rgba(38,38,38,0.85)';ctx.beginPath();
-if(ctx.roundRect)ctx.roundRect(W/2-100,12,200,55,16);else ctx.rect(W/2-100,12,200,55);
-ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 28px "Zen Kurenaido",sans-serif';ctx.textAlign='center';
-ctx.fillText(currentChar.name,W/2,42);ctx.font='14px sans-serif';ctx.fillText(currentChar.nameEn,W/2,60);
+if(ctx.roundRect)ctx.roundRect(W/2-140,8,280,72,18);else ctx.rect(W/2-140,8,280,72);
+ctx.fill();ctx.fillStyle='#fff';ctx.font='36px "Dela Gothic One",sans-serif';ctx.textAlign='center';
+ctx.fillText(currentChar.name,W/2,48);ctx.font='18px sans-serif';ctx.fillText(currentChar.nameEn,W/2,70);
 }
 function buildCharSelect(){const c=document.getElementById('charSelect');c.innerHTML='';CHARACTERS.forEach(ch=>{const btn=document.createElement('div');btn.className='char-btn'+(currentChar.id===ch.id?' active':'');btn.innerHTML='<div class="avatar"><img src="'+IMAGE_DATA[ch.face]+'"></div><div class="char-name">'+ch.name+'</div>';btn.onclick=()=>{currentChar=ch;buildCharSelect();render();};c.appendChild(btn);});}
 function buildGrid(items,gid,cat){const g=document.getElementById(gid);g.innerHTML='';items.forEach(item=>{const c=document.createElement('div');const has=item.img&&images[item.img];c.className='item-card'+(item.id==='none'?' none-card':'')+(sel[cat]===item.id?' selected':'')+(!has&&item.id!=='none'?' disabled':'');let iconHtml;if(has&&images[item.img]){const imgSrc=images[item.img].src;if(cat==='buddy'){iconHtml='<div class="icon" style="position:relative;"><img src="'+imgSrc+'" alt="'+item.name+'" style="position:absolute;width:210%;height:210%;right:-10%;bottom:-5%;object-fit:contain;"></div>';}else{iconHtml='<div class="icon"><img src="'+imgSrc+'" alt="'+item.name+'"></div>';}}else{iconHtml='<div class="icon">'+item.emoji+'</div>';}c.innerHTML=iconHtml+'<div class="name">'+item.name+'</div>';c.onclick=()=>{if(!has&&item.id!=='none')return;sel[cat]=item.id;buildGrid(items,gid,cat);render();};g.appendChild(c);});}
