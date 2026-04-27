@@ -311,14 +311,26 @@ function updatePlaza(snapshot) {
       }
     }
 
-    // Update position (use saved or random default)
-    const px = charData.px != null ? charData.px : (20 + Math.random() * 60);
-    const py = charData.py != null ? charData.py : (20 + Math.random() * 60);
-
-    // Only update position if not currently being dragged
-    if (!(dragTarget && dragTarget.dataset.charId === charData.id)) {
+    // Update position (use saved or assign random once)
+    if (charData.px != null) {
+      // Only update from Firebase if not currently being dragged
+      if (!(dragTarget && dragTarget.dataset.charId === charData.id)) {
+        sprite.style.left = charData.px + '%';
+        sprite.style.top = charData.py + '%';
+      }
+    } else if (!sprite.dataset.posSet) {
+      // First time: assign random position and save to Firebase
+      const px = 10 + Math.random() * 70;
+      const py = 15 + Math.random() * 60;
       sprite.style.left = px + '%';
       sprite.style.top = py + '%';
+      sprite.dataset.posSet = '1';
+      // Save initial position to Firebase
+      const safeKey = key;
+      if (db) {
+        db.ref('plaza/' + safeKey + '/px').set(px);
+        db.ref('plaza/' + safeKey + '/py').set(py);
+      }
     }
 
     // Update name and render
