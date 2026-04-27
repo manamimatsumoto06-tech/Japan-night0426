@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Japan Night Plaza</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#fce4ec;min-height:100vh;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;}
+.header{background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);padding:12px 20px 8px;text-align:center;color:white;text-shadow:0 1px 2px rgba(0,0,0,0.15);position:fixed;top:0;left:0;right:0;z-index:100;}
+.header h1{font-size:16px;letter-spacing:2px;}
+.header p{font-size:9px;opacity:0.9;margin-top:1px;}
+.back-link{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:white;text-decoration:none;font-size:20px;}
+.count-badge{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.25);color:white;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;}
+
+.plaza-container{position:fixed;top:0;left:0;width:100%;height:100%;background:url('images/Background_Sakura.png') center/cover no-repeat;}
+
+.char-sprite{position:absolute;width:100px;height:100px;cursor:grab;transition:none;z-index:10;}
+.char-sprite.dragging{cursor:grabbing;z-index:50;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3));}
+.char-sprite canvas{width:100%;height:100%;pointer-events:none;}
+.char-sprite .sprite-name{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6),0 0 6px rgba(0,0,0,0.3);pointer-events:none;}
+
+.waiting{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#8b6b6b;z-index:10;background:rgba(255,255,255,0.8);padding:30px;border-radius:20px;}
+.waiting .emoji{font-size:48px;animation:bounce 2s infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+.waiting p{margin-top:12px;font-size:14px;}
+
+.screenshot-btn{position:fixed;bottom:16px;right:16px;z-index:100;background:linear-gradient(45deg,#3897f0,#5b51d8);color:white;border:none;padding:10px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);}
+.screenshot-btn:active{transform:scale(0.95);}
+</style>
+</head>
+<body>
+<div class="header">
+  <a class="back-link" href="index.html">←</a>
+  <h1>🏯 Japan Night Plaza</h1>
+  <p>Drag your character around!</p>
+  <span class="count-badge" id="countBadge">0</span>
+</div>
+
+<div class="plaza-container" id="plazaContainer"></div>
+
+<div class="waiting" id="waiting">
+  <div class="emoji">🌸</div>
+  <p>Waiting for everyone to join...</p>
+</div>
+
+<button class="screenshot-btn" onclick="takeScreenshot()">📸</button>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAOxLXI0Cww8VTpCILdtBS4U3DYvgBjALE",
+  authDomain: "japan-night-e4427.firebaseapp.com",
+  databaseURL: "https://japan-night-e4427-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "japan-night-e4427"
+};
+
+const IMAGE_DATA={'face_ale':'images/face_ale.png',
+'face_alfredo':'images/face_alfredo.png',
+'face_anthony':'images/face_anthony.png',
+'face_ashwin':'images/face_ashwin.png',
+'face_caroline':'images/face_caroline.png',
+'face_chema':'images/face_chema.png',
+'face_claudia':'images/face_claudia.png',
+'face_hannah':'images/face_hannah.png',
+'face_julian':'images/face_julian.png',
+'face_manami':'images/face_manami.png',
+'face_mariana':'images/face_mariana.png',
+'face_mariana_gurgel':'images/face_mariana_gurgel.png',
+'face_maría_jesús':'images/face_maria_jesus.png',
+'face_masa':'images/face_masa.png',
+'face_megan':'images/face_megan.png',
+'face_pao':'images/face_pao.png',
+'face_rodrigo':'images/face_rodrigo.png',
+'face_santy':'images/face_santy.png',
+'face_stav':'images/face_stav.png',
+'outfit_kimono':'images/outfit_kimono.png',
+'outfit_yukata6':'images/outfit_yukata6.png',
+'outfit_kimono2':'images/outfit_kimono2.png',
+'outfit_kimono4':'images/outfit_kimono4.png',
+'outfit_kimono5':'images/outfit_kimono5.png',
+'outfit_kimono6':'images/outfit_kimono6.png',
+'outfit_kimono8':'images/outfit_kimono8.png',
+'outfit_ninja':'images/outfit_ninja.png',
+'outfit_dress':'images/outfit_dress.png',
+'outfit_uniform1':'images/outfit_uniform1.png',
+'outfit_uniform2':'images/outfit_uniform2.png',
+'outfit_ie1':'images/outfit_ie1.png',
+'outfit_kimono9':'images/outfit_kimono9.png',
+'outfit_dress2':'images/outfit_dress2.png',
+'outfit_mario1':'images/outfit_mario1.png',
+'outfit_mario2':'images/outfit_mario2.png',
+'outfit_happi2':'images/outfit_happi2.png',
+'outfit_dress3':'images/outfit_dress3.png',
+'outfit_japan1':'images/outfit_japan1.png',
+'buddy_pikachu':'images/buddy_pikachu.png',
+'buddy_totoro':'images/buddy_totoro.png',
+'buddy_mario':'images/buddy_mario.png',
+'buddy_luigi':'images/buddy_luigi.png',
+'buddy_peach':'images/buddy_peach.png',
+'buddy_bowser':'images/buddy_bowser.png',
+'buddy_dk':'images/buddy_dk.png',
+'buddy_doraemon':'images/buddy_doraemon.png',
+'buddy_tamagotchi':'images/buddy_tamagotchi.png',
+'buddy_totoro2':'images/buddy_totoro2.png',
+'buddy_naruto':'images/buddy_naruto.png',
+'buddy_anpanman':'images/buddy_anpanman.png',
+'buddy_anya':'images/buddy_anya.png',
+'buddy_eren':'images/buddy_eren.png',
+'buddy_goku':'images/buddy_goku.png',
+'buddy_hellokitty':'images/buddy_hellokitty.png',
+'buddy_hinata':'images/buddy_hinata.png',
+'buddy_link':'images/buddy_link.png',
+'buddy_luffy':'images/buddy_luffy.png',
+'buddy_sailormoon':'images/buddy_sailormoon.png',
+'buddy_sakuragi':'images/buddy_sakuragi.png',
+'buddy_sora':'images/buddy_sora.png',
+'buddy_tanjiro':'images/buddy_tanjiro.png',
+'buddy_zoro':'images/buddy_zoro.png',
+'item_fan':'images/item_fan.png',
+'item_sensu':'images/item_sensu.png',
+'item_katana':'images/item_katana.png',
+'item_lantern':'images/item_lantern.png',
+'item_onigiri':'images/item_onigiri.png',
+'item_dango':'images/item_dango.png',
+'item_taiyaki':'images/item_taiyaki.png',
+'item_takoyaki':'images/item_takoyaki.png',
+'item_sushi':'images/item_sushi.png',
+'item_ramen':'images/item_ramen.png',
+'item_curry':'images/item_curry.png',
+'item_cupnoodle':'images/item_cupnoodle.png',
+'item_karaage':'images/item_karaage.png',
+'item_eggsandwich':'images/item_eggsandwich.png',
+'item_matcha':'images/item_matcha.png',
+'item_ramune':'images/item_ramune.png',
+'item_shavedice':'images/item_shavedice.png',
+'item_beer1':'images/item_beer1.png',
+'item_beer2':'images/item_beer2.png',
+'item_sake':'images/item_sake.png',
+'item_strongzero':'images/item_strongzero.png',
+'item_whisky':'images/item_whisky.png',
+'item_yakult':'images/item_yakult.png',
+'item_aquarius':'images/item_aquarius.png',
+'item_pocky':'images/item_pocky.png',
+'item_kitkat':'images/item_kitkat.png',
+'item_peachgummy':'images/item_peachgummy.png',
+'item_ryukakusan':'images/item_ryukakusan.png',
+'item_bell':'images/item_bell.png',
+'item_daruma':'images/item_daruma.png',
+'item_luckycat':'images/item_luckycat.png'};
+
+const faceAdjust={"ale":{"x":0,"y":-27,"scale":99},"alfredo":{"x":0,"y":-78,"scale":100},"anthony":{"x":0,"y":-83,"scale":100},"ashwin":{"x":-9,"y":-75,"scale":100},"caroline":{"x":0,"y":-34,"scale":100},"chema":{"x":-14,"y":-86,"scale":100},"claudia":{"x":0,"y":-20,"scale":100},"julian":{"x":-10,"y":-17,"scale":88},"mariana":{"x":0,"y":-61,"scale":100},"maría_jesús":{"x":0,"y":-30,"scale":100},"megan":{"x":0,"y":15,"scale":100},"rodrigo":{"x":-8,"y":-66,"scale":100},"stav":{"x":0,"y":-33,"scale":100},"hannah":{"x":-17,"y":-1,"scale":103},"mariana_gurgel":{"x":-11,"y":-12,"scale":100},"pao":{"x":-19,"y":23,"scale":100},"santy":{"x":0,"y":-55,"scale":100},"manami":{"x":0,"y":0,"scale":100},"masa":{"x":0,"y":0,"scale":100}};
+
+// === IMAGE LOADING ===
+const images = {};
+function loadImages(cb) {
+  const entries = Object.entries(IMAGE_DATA);
+  let done = 0;
+  entries.forEach(([k, url]) => {
+    const img = new Image();
+    img.onload = () => { images[k] = img; done++; if (done >= entries.length) cb(); };
+    img.onerror = () => { done++; if (done >= entries.length) cb(); };
+    img.src = url;
+  });
+}
+
+// === RENDER CHARACTER ===
+function renderChar(canvas, data) {
+  const ctx = canvas.getContext('2d');
+  const W = 256, H = 256;
+  canvas.width = W; canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath();
+  ctx.ellipse(W/2, H*0.94, W*0.25, H*0.02, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Face
+  const faceImg = images[data.face];
+  if (faceImg) {
+    const adj = faceAdjust[data.id] || {x:0, y:0, scale:100};
+    const s = adj.scale / 100;
+    const dw = W * s, dh = H * s;
+    const dx = (W - dw) / 2 + adj.x * (W/1024);
+    const dy = (H - dh) / 2 + adj.y * (H/1024) - (1-s)*H/2;
+    ctx.drawImage(faceImg, dx, dy, dw, dh);
+  }
+
+  if (data.outfit && data.outfit !== 'none') {
+    const k = 'outfit_' + data.outfit;
+    if (images[k]) ctx.drawImage(images[k], 0, 0, W, H);
+  }
+  if (data.item && data.item !== 'none') {
+    const k = 'item_' + data.item;
+    if (images[k]) ctx.drawImage(images[k], 0, 0, W, H);
+  }
+  if (data.buddy && data.buddy !== 'none') {
+    const k = 'buddy_' + data.buddy;
+    if (images[k]) ctx.drawImage(images[k], 0, 0, W, H);
+  }
+}
+
+// === DRAG LOGIC ===
+// Identify which character this user controls
+const urlParams = new URLSearchParams(window.location.search);
+const myCharId = urlParams.get('char');
+let dragTarget = null;
+let dragOffsetX = 0, dragOffsetY = 0;
+let db = null;
+
+function getPos(e) {
+  if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+function onDragStart(e) {
+  const el = e.currentTarget;
+  const charId = el.dataset.charId;
+  // Only allow dragging your own character
+  if (charId !== myCharId) return;
+  e.preventDefault();
+  dragTarget = el;
+  dragTarget.classList.add('dragging');
+  const pos = getPos(e);
+  const rect = el.getBoundingClientRect();
+  dragOffsetX = pos.x - rect.left;
+  dragOffsetY = pos.y - rect.top;
+}
+
+function onDragMove(e) {
+  if (!dragTarget) return;
+  e.preventDefault();
+  const pos = getPos(e);
+  const container = document.getElementById('plazaContainer');
+  const cw = container.clientWidth;
+  const ch = container.clientHeight;
+  // Calculate percentage position
+  let x = ((pos.x - dragOffsetX) / cw) * 100;
+  let y = ((pos.y - dragOffsetY) / ch) * 100;
+  // Clamp
+  x = Math.max(0, Math.min(90, x));
+  y = Math.max(5, Math.min(88, y));
+  dragTarget.style.left = x + '%';
+  dragTarget.style.top = y + '%';
+}
+
+function onDragEnd(e) {
+  if (!dragTarget) return;
+  dragTarget.classList.remove('dragging');
+  // Save position to Firebase
+  const charId = dragTarget.dataset.charId;
+  const container = document.getElementById('plazaContainer');
+  const x = parseFloat(dragTarget.style.left);
+  const y = parseFloat(dragTarget.style.top);
+  if (db && charId === myCharId) {
+    const safeId = charId.replace(/[.#$/\[\]]/g, '_');
+    db.ref('plaza/' + safeId + '/px').set(x);
+    db.ref('plaza/' + safeId + '/py').set(y);
+  }
+  dragTarget = null;
+}
+
+document.addEventListener('mousemove', onDragMove);
+document.addEventListener('mouseup', onDragEnd);
+document.addEventListener('touchmove', onDragMove, {passive: false});
+document.addEventListener('touchend', onDragEnd);
+
+// === PLAZA UPDATE ===
+const container = document.getElementById('plazaContainer');
+const waitingEl = document.getElementById('waiting');
+const countEl = document.getElementById('countBadge');
+const sprites = {};
+
+function updatePlaza(snapshot) {
+  const data = snapshot.val() || {};
+  const entries = Object.entries(data);
+
+  waitingEl.style.display = entries.length === 0 ? 'flex' : 'none';
+  countEl.textContent = entries.length;
+
+  const existing = new Set();
+
+  entries.forEach(([key, charData]) => {
+    existing.add(key);
+    let sprite = sprites[key];
+
+    if (!sprite) {
+      // Create new sprite
+      sprite = document.createElement('div');
+      sprite.className = 'char-sprite';
+      sprite.id = 'sprite-' + key;
+      sprite.dataset.charId = charData.id;
+      const canvas = document.createElement('canvas');
+      const nameLabel = document.createElement('div');
+      nameLabel.className = 'sprite-name';
+      sprite.appendChild(canvas);
+      sprite.appendChild(nameLabel);
+      container.appendChild(sprite);
+      sprites[key] = sprite;
+
+      // Drag events
+      sprite.addEventListener('mousedown', onDragStart);
+      sprite.addEventListener('touchstart', onDragStart, {passive: false});
+
+      // Highlight own character
+      if (charData.id === myCharId) {
+        sprite.style.outline = '3px solid #dc2743';
+        sprite.style.outlineOffset = '2px';
+        sprite.style.borderRadius = '12px';
+      }
+    }
+
+    // Update position (use saved or random default)
+    const px = charData.px != null ? charData.px : (20 + Math.random() * 60);
+    const py = charData.py != null ? charData.py : (20 + Math.random() * 60);
+
+    // Only update position if not currently being dragged
+    if (!(dragTarget && dragTarget.dataset.charId === charData.id)) {
+      sprite.style.left = px + '%';
+      sprite.style.top = py + '%';
+    }
+
+    // Update name and render
+    sprite.querySelector('.sprite-name').textContent = charData.nameEn || '';
+    const canvas = sprite.querySelector('canvas');
+    renderChar(canvas, charData);
+  });
+
+  // Remove departed characters
+  Object.keys(sprites).forEach(key => {
+    if (!existing.has(key)) {
+      sprites[key].remove();
+      delete sprites[key];
+    }
+  });
+}
+
+// === SCREENSHOT ===
+function takeScreenshot() {
+  const c = document.getElementById('plazaContainer');
+  const cw = c.clientWidth, ch = c.clientHeight;
+  const scale = 2;
+  const cv = document.createElement('canvas');
+  cv.width = cw * scale; cv.height = ch * scale;
+  const ctx = cv.getContext('2d');
+  ctx.scale(scale, scale);
+
+  // Draw background
+  const bgImg = new Image();
+  bgImg.onload = () => {
+    ctx.drawImage(bgImg, 0, 0, cw, ch);
+
+    // Draw each sprite
+    const spriteEls = document.querySelectorAll('.char-sprite');
+    spriteEls.forEach(s => {
+      const left = parseFloat(s.style.left) / 100 * cw;
+      const top = parseFloat(s.style.top) / 100 * ch;
+      const sw = s.clientWidth, sh = s.clientHeight;
+      const canvas = s.querySelector('canvas');
+      ctx.drawImage(canvas, left, top, sw, sh);
+      // Name
+      const name = s.querySelector('.sprite-name').textContent;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 3;
+      ctx.fillText(name, left + sw/2, top + sh + 12);
+      ctx.shadowBlur = 0;
+    });
+
+    // Title
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(0, 0, cw, 36);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏯 Japan Night Plaza 🌸', cw/2, 24);
+
+    const link = document.createElement('a');
+    link.download = 'japan-night-plaza.png';
+    link.href = cv.toDataURL('image/png');
+    link.click();
+  };
+  bgImg.src = 'images/Background_Sakura.png';
+}
+
+// === INIT ===
+const s1 = document.createElement('script');
+s1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+s1.onload = () => {
+  const s2 = document.createElement('script');
+  s2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
+  s2.onload = () => {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    loadImages(() => {
+      db.ref('plaza').on('value', updatePlaza);
+    });
+  };
+  document.head.appendChild(s2);
+};
+document.head.appendChild(s1);
+</script>
+</body>
+</html>

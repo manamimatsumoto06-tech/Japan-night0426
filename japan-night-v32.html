@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Japan Night Dress-Up</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#fef6f0;min-height:100vh;}
+.header{background:linear-gradient(135deg,#e8a0bf 0%,#c9b1d0 50%,#a3c4dc 100%);padding:14px 20px 10px;text-align:center;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.15);}
+.header h1{font-size:18px;letter-spacing:2px;}
+.header p{font-size:10px;opacity:0.9;margin-top:2px;}
+.char-select{display:none;}
+.char-btn{text-align:center;cursor:pointer;transition:all 0.15s;}
+.char-btn .avatar{width:56px;height:56px;border-radius:50%;border:3px solid #e0d4cc;background:#fff;overflow:hidden;margin:0 auto;}
+.char-btn.active .avatar{border-color:#e8a0bf;box-shadow:0 0 0 3px rgba(232,160,191,0.3);}
+.char-btn .avatar img{width:100%;height:100%;object-fit:cover;}
+.char-btn .char-name{font-size:10px;color:#8b7b6b;margin-top:3px;}
+.char-btn.active .char-name{color:#e8a0bf;font-weight:bold;}
+.stage{position:relative;width:100%;max-width:400px;margin:6px auto;aspect-ratio:1;background:#fff;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,0.06);overflow:hidden;}
+.stage canvas{width:100%;height:100%;display:block;}
+.tabs{display:flex;justify-content:center;gap:4px;padding:0 8px;margin-bottom:6px;}
+.tab-btn{flex:1;max-width:100px;padding:7px 2px;border:2px solid #e0d4cc;border-radius:18px;background:#fff;font-size:12px;font-weight:600;color:#8b7b6b;cursor:pointer;}
+.tab-btn.active{background:#e8a0bf;border-color:#e8a0bf;color:#fff;}
+.item-grid{display:none;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 12px 10px;max-width:420px;margin:0 auto;}
+.item-grid.active{display:grid;}
+.item-card{aspect-ratio:1;border-radius:10px;border:2px solid #e8ddd5;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px;transition:all 0.15s;}
+.item-card:active{transform:scale(0.94);}
+.item-card.selected{border-color:#e8a0bf;box-shadow:0 0 0 2px rgba(232,160,191,0.3);}
+.item-card .icon{font-size:24px;width:64px;height:64px;display:flex;align-items:center;justify-content:center;}.item-card .icon img{width:100%;height:100%;object-fit:contain;}
+.item-card .name{font-size:8px;color:#8b7b6b;margin-top:1px;}
+.item-card.none-card{background:#f5f0eb;}
+.item-card.disabled{opacity:0.35;}
+.actions{display:flex;gap:8px;justify-content:center;padding:6px 12px 18px;}
+.action-btn{padding:9px 16px;border-radius:22px;border:none;font-size:13px;font-weight:600;cursor:pointer;}
+.action-btn:active{transform:scale(0.95);}
+.btn-save{background:linear-gradient(135deg,#e8a0bf,#c9b1d0);color:white;}
+.btn-random{background:#fff;color:#8b7b6b;border:2px solid #e0d4cc;}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(0,0,0,0.75);color:white;padding:10px 24px;border-radius:20px;font-size:13px;transition:transform 0.3s;z-index:100;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+.select-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:20px;}
+.select-title{font-size:16px;color:#8b7b6b;margin-bottom:20px;letter-spacing:1px;}
+.name-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;max-width:360px;padding:0 16px;}
+.name-btn{padding:18px 12px;border-radius:16px;border:2px solid #e8ddd5;background:#fff;font-size:16px;font-weight:600;color:#6b5b4b;cursor:pointer;transition:all 0.15s;text-align:center;}
+.name-btn:active{transform:scale(0.95);background:#fef0f5;border-color:#e8a0bf;}
+.name-btn .kanji{font-size:12px;color:#b0a090;margin-top:2px;}
+.dressup-screen{display:none;}
+.dressup-screen.active{display:block;}
+.back-btn{position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:20px;color:rgba(255,255,255,0.9);cursor:pointer;}
+.header{position:relative;}
+
+.edit-panel{display:none;background:#fff;border-top:2px solid #e8a0bf;padding:10px 16px;max-width:420px;margin:0 auto;}
+.edit-panel.active{display:block;}
+.edit-panel label{font-size:12px;color:#6b5b4b;display:block;margin-top:6px;}
+.edit-panel input[type=range]{width:100%;margin:2px 0;}
+.edit-panel .val{font-size:11px;color:#b0a090;float:right;}
+.edit-btn{padding:6px 14px;border-radius:16px;border:2px solid #a0d0a0;background:#e8f5e8;font-size:12px;font-weight:600;color:#4a8a4a;cursor:pointer;margin-right:6px;}
+.edit-btn.active{background:#a0d0a0;color:#fff;}
+.export-btn{padding:6px 14px;border-radius:16px;border:2px solid #e8a0bf;background:#fef0f5;font-size:12px;font-weight:600;color:#c06090;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="header"><button class="back-btn" id="backBtn" style="display:none;" onclick="showSelectScreen()">←</button><h1>🌸 Japan Night Dress-Up</h1><p>Style your character with Japanese outfits!</p></div>
+
+<div class="select-screen" id="selectScreen">
+<div class="select-title">Choose your character</div>
+<div class="name-grid" id="nameGrid"></div>
+</div>
+<div class="dressup-screen" id="dressupScreen"><div class="char-select" id="charSelect"></div>
+<div class="stage"><canvas id="cv" width="1024" height="1024"></canvas></div>
+<div id="editBtnWrap" style="display:none;text-align:center;padding:6px;"><button class="edit-btn" id="editToggle" onclick="toggleEdit()" style="font-size:14px;padding:8px 20px;">✏️ Edit Face Position</button></div>
+<div class="tabs">
+<button class="tab-btn active" data-cat="outfit">👘 Outfit</button>
+<button class="tab-btn" data-cat="item">🪭 Items</button>
+<button class="tab-btn" data-cat="buddy">🐾 Buddy</button>
+</div>
+<div class="item-grid active" id="grid-outfit"></div>
+<div class="item-grid" id="grid-item"></div>
+<div class="item-grid" id="grid-buddy"></div>
+<div class="actions">
+<button class="action-btn btn-random" onclick="randomize()">🎲 Random</button>
+<button class="action-btn btn-save" onclick="saveImage()">📷 Save</button>
+</div>
+
+<div class="edit-panel" id="editPanel">
+<label>↕️ 上下 (Y) <span class="val" id="valY">0</span></label>
+<input type="range" id="sliderY" min="-200" max="200" value="0" oninput="updateFacePos()">
+<label>↔️ 左右 (X) <span class="val" id="valX">0</span></label>
+<input type="range" id="sliderX" min="-200" max="200" value="0" oninput="updateFacePos()">
+<label>🔍 サイズ <span class="val" id="valS">100</span>%</label>
+<input type="range" id="sliderS" min="50" max="150" value="100" oninput="updateFacePos()">
+<div style="margin-top:8px;display:flex;gap:6px;">
+<button class="edit-btn" onclick="saveFacePos()">💾 この顔を保存</button>
+<button class="export-btn" onclick="exportAllPos()">📋 全設定をコピー</button>
+</div>
+</div>
+</div><div class="toast" id="toast"></div>
+<script>
+const IMAGE_DATA={'face_ale':'images/face_ale.png',
+'face_alfredo':'images/face_alfredo.png',
+'face_anthony':'images/face_anthony.png',
+'face_ashwin':'images/face_ashwin.png',
+'face_caroline':'images/face_caroline.png',
+'face_chema':'images/face_chema.png',
+'face_claudia':'images/face_claudia.png',
+'face_hannah':'images/face_hannah.png',
+'face_julian':'images/face_julian.png',
+'face_manami':'images/face_manami.png',
+'face_mariana':'images/face_mariana.png',
+'face_mariana_gurgel':'images/face_mariana_gurgel.png',
+'face_maría_jesús':'images/face_maria_jesus.png',
+'face_masa':'images/face_masa.png',
+'face_megan':'images/face_megan.png',
+'face_pao':'images/face_pao.png',
+'face_rodrigo':'images/face_rodrigo.png',
+'face_santy':'images/face_santy.png',
+'face_stav':'images/face_stav.png',
+'outfit_kimono':'images/outfit_kimono.png',
+'outfit_yukata':'images/outfit_yukata.png',
+'item_fan':'images/item_fan.png',
+'item_sensu':'images/item_sensu.png',
+'buddy_pikachu':'images/buddy_pikachu.png',
+'buddy_totoro':'images/buddy_totoro.png',
+'buddy_mario':'images/buddy_mario.png',
+'buddy_luigi':'images/buddy_luigi.png',
+'buddy_peach':'images/buddy_peach.png',
+'buddy_bowser':'images/buddy_bowser.png',
+'buddy_dk':'images/buddy_dk.png',
+'buddy_doraemon':'images/buddy_doraemon.png',
+'buddy_tamagotchi':'images/buddy_tamagotchi.png',
+'buddy_totoro2':'images/buddy_totoro2.png'};
+const CHARACTERS=[{id:'ale',name:'アレ',nameEn:'Ale',face:'face_ale'},{id:'alfredo',name:'アルフレド',nameEn:'Alfredo',face:'face_alfredo'},{id:'anthony',name:'アンソニー',nameEn:'Anthony',face:'face_anthony'},{id:'ashwin',name:'アシュウィン',nameEn:'Ashwin',face:'face_ashwin'},{id:'caroline',name:'キャロライン',nameEn:'Caroline',face:'face_caroline'},{id:'chema',name:'チェマ',nameEn:'Chema',face:'face_chema'},{id:'claudia',name:'クラウディア',nameEn:'Claudia',face:'face_claudia'},{id:'hannah',name:'ハンナ',nameEn:'Hannah',face:'face_hannah'},{id:'julian',name:'フリアン',nameEn:'Julian',face:'face_julian'},{id:'manami',name:'マナミ',nameEn:'Manami',face:'face_manami'},{id:'mariana',name:'マリアナ',nameEn:'Mariana',face:'face_mariana'},{id:'mariana_gurgel',name:'マリアナG',nameEn:'Mariana Gurgel',face:'face_mariana_gurgel'},{id:'maría_jesús',name:'マリア・ヘスス',nameEn:'María Jesús',face:'face_maría_jesús'},{id:'masa',name:'マサ',nameEn:'Masa',face:'face_masa'},{id:'megan',name:'メーガン',nameEn:'Megan',face:'face_megan'},{id:'pao',name:'パオ',nameEn:'Pao',face:'face_pao'},{id:'rodrigo',name:'ロドリゴ',nameEn:'Rodrigo',face:'face_rodrigo'},{id:'santy',name:'サンティ',nameEn:'Santy',face:'face_santy'},{id:'stav',name:'スタヴ',nameEn:'Stav',face:'face_stav'}];
+const OUTFITS=[{id:'none',name:'None',emoji:'✖️'},{id:'kimono',name:'Kimono',emoji:'👘',img:'outfit_kimono'},{id:'yukata',name:'Yukata',emoji:'🎐',img:'outfit_yukata'},{id:'ninja',name:'Ninja',emoji:'🥷'},{id:'miko',name:'Miko',emoji:'⛩️'},{id:'sailor',name:'Sailor',emoji:'🎀'},{id:'mahou',name:'Mahou',emoji:'✨'},{id:'samurai',name:'Samurai',emoji:'⚔️'}];
+const ITEMS=[{id:'none',name:'None',emoji:'✖️'},{id:'fan',name:'Fan',emoji:'🪭',img:'item_fan'},{id:'sensu',name:'Sensu',emoji:'🪭',img:'item_sensu'},{id:'umbrella',name:'Umbrella',emoji:'🌂'},{id:'katana',name:'Katana',emoji:'🗡️'},{id:'lantern',name:'Lantern',emoji:'🏮'},{id:'onigiri',name:'Onigiri',emoji:'🍙'},{id:'dango',name:'Dango',emoji:'🍡'}];
+const BUDDIES=[{id:'none',name:'None',emoji:'✖️'},{id:'pikachu',name:'Pikachu',emoji:'⚡',img:'buddy_pikachu'},{id:'totoro',name:'Totoro',emoji:'🌿',img:'buddy_totoro'},{id:'mario',name:'Mario',emoji:'🍄',img:'buddy_mario'},{id:'luigi',name:'Luigi',emoji:'💚',img:'buddy_luigi'},{id:'peach',name:'Peach',emoji:'👸',img:'buddy_peach'},{id:'bowser',name:'Bowser',emoji:'🐢',img:'buddy_bowser'},{id:'dk',name:'Donkey Kong',emoji:'🦍',img:'buddy_dk'},{id:'doraemon',name:'Doraemon',emoji:'🔵',img:'buddy_doraemon'},{id:'tamagotchi',name:'Tamagotchi',emoji:'🥚',img:'buddy_tamagotchi'},{id:'totoro2',name:'Totoro 2',emoji:'🌳',img:'buddy_totoro2'},{id:'kirby',name:'Kirby',emoji:'🩷'},{id:'jiji',name:'Jiji',emoji:'🐱'},{id:'chopper',name:'Chopper',emoji:'🦌'},{id:'nezuko',name:'Nezuko',emoji:'🎋'},{id:'naruto',name:'Naruto',emoji:'🍥'}];
+let currentChar=CHARACTERS[0],sel={outfit:'none',item:'none',buddy:'none'};
+const images={};let loaded=0;const total=Object.keys(IMAGE_DATA).length;
+function loadImages(cb){
+const entries=Object.entries(IMAGE_DATA);
+let done=0;
+entries.forEach(([k,url])=>{
+const img=new Image();
+img.onload=()=>{images[k]=img;done++;if(done>=entries.length)cb();};
+img.onerror=()=>{setTimeout(()=>{img.src='';img.src=url;},300);};
+img.src=url;
+});
+}
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+function render(){
+const W=1024,H=1024;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fef6f0';ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#f0e6da';ctx.beginPath();ctx.ellipse(W/2,H*.92,W*.22,H*.012,0,0,Math.PI*2);ctx.fill();
+const fi=images[currentChar.face];if(fi){
+const adj=faceAdjust[currentChar.id]||{x:0,y:0,scale:100};
+const s=adj.scale/100;
+const dw=W*s,dh=H*s;
+const dx=(W-dw)/2+adj.x;
+const dy=(H-dh)/2+adj.y-(1-s)*H/2;
+ctx.drawImage(fi,dx,dy,dw,dh);
+}
+const o=OUTFITS.find(o=>o.id===sel.outfit);if(o?.img&&images[o.img])ctx.drawImage(images[o.img],0,0,W,H);
+if(sel.item!=='none'){const i=ITEMS.find(i=>i.id===sel.item);if(i?.img&&images[i.img])ctx.drawImage(images[i.img],0,0,W,H);}
+if(sel.buddy!=='none'){const b=BUDDIES.find(b=>b.id===sel.buddy);if(b?.img&&images[b.img])ctx.drawImage(images[b.img],0,0,W,H);}
+ctx.fillStyle='rgba(232,160,191,0.85)';ctx.beginPath();
+if(ctx.roundRect)ctx.roundRect(W/2-100,H-75,200,55,16);else ctx.rect(W/2-100,H-75,200,55);
+ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 26px sans-serif';ctx.textAlign='center';
+ctx.fillText(currentChar.name,W/2,H-48);ctx.font='16px sans-serif';ctx.fillText(currentChar.nameEn,W/2,H-28);
+}
+function buildCharSelect(){const c=document.getElementById('charSelect');c.innerHTML='';CHARACTERS.forEach(ch=>{const btn=document.createElement('div');btn.className='char-btn'+(currentChar.id===ch.id?' active':'');btn.innerHTML='<div class="avatar"><img src="'+IMAGE_DATA[ch.face]+'"></div><div class="char-name">'+ch.name+'</div>';btn.onclick=()=>{currentChar=ch;buildCharSelect();render();};c.appendChild(btn);});}
+function buildGrid(items,gid,cat){const g=document.getElementById(gid);g.innerHTML='';items.forEach(item=>{const c=document.createElement('div');const has=item.img&&images[item.img];c.className='item-card'+(item.id==='none'?' none-card':'')+(sel[cat]===item.id?' selected':'')+(!has&&item.id!=='none'?' disabled':'');let iconHtml;if(has&&images[item.img]){iconHtml='<div class="icon"><img src="'+images[item.img].src+'" alt="'+item.name+'"></div>';}else{iconHtml='<div class="icon">'+item.emoji+'</div>';}c.innerHTML=iconHtml+'<div class="name">'+item.name+'</div>';c.onclick=()=>{if(!has&&item.id!=='none')return;sel[cat]=item.id;buildGrid(items,gid,cat);render();};g.appendChild(c);});}
+document.querySelectorAll('.tab-btn').forEach(btn=>{btn.onclick=()=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.item-grid').forEach(g=>g.classList.remove('active'));document.getElementById('grid-'+btn.dataset.cat).classList.add('active');};});
+function randomize(){const ao=OUTFITS.filter(o=>o.img&&images[o.img]);if(ao.length)sel.outfit=ao[Math.floor(Math.random()*ao.length)].id;const ai=ITEMS.filter(i=>i.img&&images[i.img]);sel.item=ai.length?ai[Math.floor(Math.random()*ai.length)].id:'none';const ab=BUDDIES.filter(b=>b.img&&images[b.img]);sel.buddy=ab.length?ab[Math.floor(Math.random()*ab.length)].id:'none';currentChar=CHARACTERS[Math.floor(Math.random()*CHARACTERS.length)];buildCharSelect();buildGrid(OUTFITS,'grid-outfit','outfit');buildGrid(ITEMS,'grid-item','item');buildGrid(BUDDIES,'grid-buddy','buddy');render();}
+function saveImage(){const l=document.createElement('a');l.download='japan-night-'+currentChar.nameEn.toLowerCase()+'.png';l.href=cv.toDataURL('image/png');l.click();showToast('📷 Image saved!');}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+buildGrid(OUTFITS,'grid-outfit','outfit');buildGrid(ITEMS,'grid-item','item');buildGrid(BUDDIES,'grid-buddy','buddy');
+
+function buildNameGrid(){
+const g=document.getElementById('nameGrid');g.innerHTML='';
+CHARACTERS.forEach(ch=>{
+const btn=document.createElement('button');
+btn.className='name-btn';
+btn.innerHTML='<div style="font-size:15px;font-weight:bold;">'+ch.name+'</div><div class="kanji">'+ch.nameEn+'</div>';
+btn.onclick=()=>selectCharacter(ch);
+g.appendChild(btn);
+});
+}
+function selectCharacter(ch){
+currentChar=ch;
+document.getElementById('selectScreen').style.display='none';
+document.getElementById('dressupScreen').classList.add('active');
+document.getElementById('backBtn').style.display='block';
+sel={outfit:'none',item:'none',buddy:'none'};
+buildCharSelect();
+buildGrid(OUTFITS,'grid-outfit','outfit');
+buildGrid(ITEMS,'grid-item','item');
+buildGrid(BUDDIES,'grid-buddy','buddy');
+if(editMode)loadFacePos();
+render();
+}
+function showSelectScreen(){
+document.getElementById('selectScreen').style.display='flex';
+document.getElementById('dressupScreen').classList.remove('active');
+document.getElementById('backBtn').style.display='none';
+}
+
+// 編集モード
+let editMode=false;
+let faceAdjust={"ale": {"x": 0, "y": -27, "scale": 99}, "alfredo": {"x": 0, "y": -78, "scale": 100}, "anthony": {"x": 0, "y": -83, "scale": 100}, "ashwin": {"x": -9, "y": -75, "scale": 100}, "caroline": {"x": 0, "y": -34, "scale": 100}, "chema": {"x": -14, "y": -86, "scale": 100}, "claudia": {"x": 0, "y": -20, "scale": 100}, "julian": {"x": -10, "y": -17, "scale": 88}, "mariana": {"x": 0, "y": -61, "scale": 100}, "mar\u00eda_jes\u00fas": {"x": 0, "y": -30, "scale": 100}, "megan": {"x": 0, "y": 15, "scale": 100}, "rodrigo": {"x": -8, "y": -66, "scale": 100}, "stav": {"x": 0, "y": -33, "scale": 100}, "hannah": {"x": -17, "y": -1, "scale": 103}, "mariana_gurgel": {"x": -11, "y": -12, "scale": 100}, "pao": {"x": -19, "y": 23, "scale": 100}, "santy": {"x": 0, "y": -55, "scale": 100}, "manami": {"x": 0, "y": 0, "scale": 100}, "masa": {"x": 0, "y": 0, "scale": 100}};  // {charId: {x:0, y:0, scale:100}}
+
+function toggleEdit(){
+const btn=document.getElementById('editToggle');
+const panel=document.getElementById('editPanel');
+editMode=!editMode;
+btn.classList.toggle('active');
+panel.classList.toggle('active');
+if(editMode){loadFacePos();}
+}
+
+function loadFacePos(){
+const adj=faceAdjust[currentChar.id]||{x:0,y:0,scale:100};
+document.getElementById('sliderX').value=adj.x;
+document.getElementById('sliderY').value=adj.y;
+document.getElementById('sliderS').value=adj.scale;
+document.getElementById('valX').textContent=adj.x;
+document.getElementById('valY').textContent=adj.y;
+document.getElementById('valS').textContent=adj.scale;
+}
+
+function updateFacePos(){
+const x=parseInt(document.getElementById('sliderX').value);
+const y=parseInt(document.getElementById('sliderY').value);
+const s=parseInt(document.getElementById('sliderS').value);
+document.getElementById('valX').textContent=x;
+document.getElementById('valY').textContent=y;
+document.getElementById('valS').textContent=s;
+faceAdjust[currentChar.id]={x,y,scale:s};
+render();
+}
+
+function saveFacePos(){
+showToast('💾 '+currentChar.nameEn+' の位置を保存しました');
+}
+
+function exportAllPos(){
+const json=JSON.stringify(faceAdjust,null,2);
+navigator.clipboard.writeText(json).then(()=>{
+showToast('📋 設定をクリップボードにコピーしました');
+}).catch(()=>{
+prompt('この設定をコピーしてください:',json);
+});
+}
+
+buildNameGrid();
+
+
+// ?edit がURLにある時だけ編集ボタンを表示
+const isEditMode = window.location.search.includes('edit');
+if(isEditMode){
+  document.getElementById('editBtnWrap').style.display='block';
+}
+
+loadImages(()=>{buildCharSelect();buildGrid(OUTFITS,'grid-outfit','outfit');buildGrid(ITEMS,'grid-item','item');buildGrid(BUDDIES,'grid-buddy','buddy');render();});
+</script></body></html>

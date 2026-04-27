@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Editor - Japan Night</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:sans-serif;background:#1a1a2e;color:#fff;padding:12px}
+h1{text-align:center;margin-bottom:8px;font-size:18px;color:#f8a5c2}
+.top-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;justify-content:center}
+.top-bar select,.top-bar button{padding:7px 11px;border-radius:8px;border:none;font-size:13px}
+.top-bar select{background:#2d2d44;color:#fff;max-width:280px}
+.top-bar button{background:#f8a5c2;color:#1a1a2e;font-weight:bold;cursor:pointer}
+.top-bar button:hover{background:#f78fb3}
+.mode-btn{padding:6px 14px!important;border-radius:20px!important}
+.mode-btn.active{background:#6c5ce7!important;color:#fff!important}
+.main{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+canvas{border:2px solid #444;border-radius:8px}
+.controls{background:#2d2d44;border-radius:12px;padding:14px;min-width:260px;max-width:300px}
+.controls h3{color:#f8a5c2;margin-bottom:8px;font-size:15px}
+.ctrl-group{margin-bottom:10px}
+.ctrl-group label{display:flex;justify-content:space-between;margin-bottom:3px;font-size:12px;color:#aaa}
+.ctrl-group label span{color:#fff;font-weight:bold}
+input[type=range]{width:100%;accent-color:#f8a5c2}
+.json-area{margin-top:12px;text-align:center}
+.json-area textarea{width:100%;height:70px;background:#1a1a2e;color:#0f0;border:1px solid #444;border-radius:6px;padding:6px;font-size:10px;font-family:monospace}
+.json-area button{margin:4px 2px;padding:5px 12px;border:none;border-radius:6px;background:#6c5ce7;color:#fff;cursor:pointer;font-size:12px}
+.status{text-align:center;margin-top:6px;font-size:11px;color:#aaa}
+.warn{color:#ff6b6b;font-size:11px;text-align:center;margin:4px 0}
+.dl-btn{background:#27ae60!important;color:#fff!important}
+.dl-all{background:#e67e22!important;color:#fff!important}
+.progress{background:#333;border-radius:4px;height:16px;margin:6px 0;overflow:hidden;display:none}
+.progress-bar{height:100%;background:#27ae60;transition:width 0.2s;text-align:center;font-size:10px;line-height:16px;color:#fff}
+</style>
+</head>
+<body>
+<h1>Image Editor</h1>
+<div class="top-bar">
+  <button class="mode-btn active" onclick="setMode('buddy')">Buddy</button>
+  <button class="mode-btn" onclick="setMode('item')">Item</button>
+  <select id="fileSel" onchange="loadSelected()"></select>
+  <button onclick="prevImg()">←</button>
+  <button onclick="nextImg()">→</button>
+  <button class="dl-btn" onclick="downloadPNG()">⬇ Save</button>
+  <button class="dl-all" onclick="downloadAll()">⬇ Save ALL</button>
+</div>
+<div class="progress" id="prog"><div class="progress-bar" id="progBar">0%</div></div>
+
+<div class="main">
+  <div>
+    <canvas id="cv" width="512" height="512"></canvas>
+    <div class="status" id="status">Loading reference...</div>
+  </div>
+  <div class="controls">
+    <h3>Size & Position</h3>
+    <div class="ctrl-group">
+      <label>Size % <span id="v_size">50</span></label>
+      <input type="range" id="size" min="10" max="90" value="50" oninput="update()">
+    </div>
+    <div class="ctrl-group">
+      <label>X center <span id="v_cx">0.69</span></label>
+      <input type="range" id="cx" min="0" max="100" value="69" oninput="update()">
+    </div>
+    <div class="ctrl-group">
+      <label>Y bottom <span id="v_cy">0.92</span></label>
+      <input type="range" id="cy" min="30" max="100" value="92" oninput="update()">
+    </div>
+
+    <h3>Background Removal</h3>
+    <div class="ctrl-group">
+      <label>Threshold <span id="v_thresh">250</span></label>
+      <input type="range" id="thresh" min="200" max="255" value="250" oninput="update()">
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+      <button style="padding:3px 8px;border:none;border-radius:4px;background:#444;color:#fff;font-size:11px;cursor:pointer" onclick="setT(255)">OFF</button>
+      <button style="padding:3px 8px;border:none;border-radius:4px;background:#444;color:#fff;font-size:11px;cursor:pointer" onclick="setT(250)">Gentle</button>
+      <button style="padding:3px 8px;border:none;border-radius:4px;background:#444;color:#fff;font-size:11px;cursor:pointer" onclick="setT(240)">Medium</button>
+      <button style="padding:3px 8px;border:none;border-radius:4px;background:#444;color:#fff;font-size:11px;cursor:pointer" onclick="setT(225)">Strong</button>
+    </div>
+
+    <div class="json-area">
+      <button onclick="exportAll()">Export JSON</button>
+      <button onclick="importJSON()">Import JSON</button>
+      <textarea id="jsonOut" placeholder="Settings JSON..."></textarea>
+    </div>
+    <div class="warn" id="broken"></div>
+  </div>
+</div>
+
+<script>
+const CS = 1024, cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let mode = 'buddy', allSettings = {}, rawImg = null, currentFile = '';
+
+// Reference images: Manami face + Kimono outfit
+let refFace = null, refOutfit = null;
+function loadRef() {
+  refFace = new Image();
+  refFace.onload = () => {
+    refOutfit = new Image();
+    refOutfit.onload = () => { $('status').textContent = 'Ready'; update(); };
+    refOutfit.src = 'images/outfit_kimono.png';
+  };
+  refFace.src = 'images/face_manami.png';
+}
+
+const allBuddyRaw = [
+  'Buddy_Anpanman.png','Buddy_Anya.png','Buddy_Doraemon.png','Buddy_ErenYeager.png',
+  'Buddy_Goku.png','Buddy_HelloKitty.png','Buddy_Hinata.png','Buddy_Link.png',
+  'Buddy_Luffy.png','Buddy_Mario1.png','Buddy_Mario2.png','Buddy_Naruto.png',
+  'Buddy_SailorMoon.png','Buddy_Sakuragi.png','Buddy_Sora.png','Buddy_Tanjiro.png','Buddy_Zoro.png'
+];
+
+const itemFiles = [
+  'Items_Beer1.png','Items_Beer2.png','Items_CurryRice.png','Items_EggSandwich.png',
+  'Items_FriedChicken1.png','Items_KitKat.png','Items_PeachGummyPremium.png','Items_Pocky.png',
+  'Items_RyukakusanDirect.png','Items_SakeBottle.png','Items_StrongZero.png',
+  'Items_WhiskyBottlePremium1.png','Items_Yakult.png','Items_aquarius.png','Items_bell.png',
+  'Items_cupnoodle.png','Items_dango1.png','Items_daruma.png','Items_katana.png',
+  'Items_lantern.png','Items_luckycat.png','Items_matcha.png','Items_onigiri.png',
+  'Items_ramen.png','Items_ramune.png','Items_shavedice.png','Items_sushi.png',
+  'Items_taiyaki.png','Items_takoyaki.png'
+];
+
+const fileMap = {
+  'Buddy_Mario1.png':'buddy_mario','Buddy_Mario2.png':'buddy_luigi',
+  'Buddy_ErenYeager.png':'buddy_eren','Buddy_HelloKitty.png':'buddy_hellokitty',
+  'Buddy_SailorMoon.png':'buddy_sailormoon','Buddy_Tamagotchi1.png':'buddy_tamagotchi',
+  'Buddy_Totoro2.png':'buddy_totoro2',
+  'Items_CurryRice.png':'item_curry','Items_EggSandwich.png':'item_eggsandwich',
+  'Items_FriedChicken1.png':'item_karaage','Items_PeachGummyPremium.png':'item_peachgummy',
+  'Items_RyukakusanDirect.png':'item_ryukakusan','Items_SakeBottle.png':'item_sake',
+  'Items_StrongZero.png':'item_strongzero','Items_WhiskyBottlePremium1.png':'item_whisky',
+  'Items_dango1.png':'item_dango','Items_shavedice.png':'item_shavedice',
+};
+
+function outName(file) {
+  if (fileMap[file]) return fileMap[file] + '.png';
+  if (file.startsWith('Buddy_')) return 'buddy_' + file.replace('Buddy_','').replace('.png','').toLowerCase() + '.png';
+  if (file.startsWith('Items_')) return 'item_' + file.replace('Items_','').replace('.png','').toLowerCase() + '.png';
+  return file.toLowerCase();
+}
+
+const buddyDef = {thresh:250, size:50, cx:69, cy:92};
+const itemDef = {thresh:250, size:40, cx:32, cy:85};
+
+function setMode(m) {
+  save(); mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase()===m));
+  populateSelect(); loadSelected();
+}
+
+function populateSelect() {
+  const sel = $('fileSel'); sel.innerHTML = '';
+  (mode==='buddy' ? allBuddyRaw : itemFiles).forEach(f => {
+    const o = document.createElement('option'); o.value = f;
+    o.textContent = f.replace('Buddy_','').replace('Items_','').replace('.png','');
+    sel.appendChild(o);
+  });
+}
+
+function getDef() { return mode==='buddy' ? {...buddyDef} : {...itemDef}; }
+
+function save() {
+  if (!currentFile) return;
+  allSettings[currentFile] = {
+    thresh:+$('thresh').value, size:+$('size').value,
+    cx:+$('cx').value, cy:+$('cy').value
+  };
+}
+
+function load(file) {
+  const s = allSettings[file] || getDef();
+  $('thresh').value=s.thresh; $('size').value=s.size;
+  $('cx').value=s.cx; $('cy').value=s.cy;
+}
+
+function $(id) { return document.getElementById(id); }
+function setT(v) { $('thresh').value=v; update(); }
+
+function loadSelected() {
+  const file = $('fileSel').value;
+  if (!file) return;
+  save(); currentFile = file; load(file);
+  rawImg = new Image();
+  rawImg.onload = () => { update(); $('status').textContent = `${file} → ${outName(file)}`; $('broken').textContent=''; };
+  rawImg.onerror = () => { $('status').textContent = `Error: ${file}`; $('broken').textContent='⚠ This file may be corrupted.'; rawImg=null; drawRef(); };
+  rawImg.src = 'images/' + file;
+}
+
+function update() {
+  const t=+$('thresh').value, sz=+$('size').value, cxV=+$('cx').value, cyV=+$('cy').value;
+  $('v_thresh').textContent=t; $('v_size').textContent=sz;
+  $('v_cx').textContent=(cxV/100).toFixed(2); $('v_cy').textContent=(cyV/100).toFixed(2);
+  if (!rawImg||!rawImg.complete||!rawImg.naturalWidth) { drawRef(); return; }
+  render(t, sz, cxV/100, cyV/100);
+}
+
+function drawRef() {
+  // Draw Manami + Kimono as reference
+  ctx.clearRect(0,0,512,512);
+  ctx.fillStyle='#fef6f0'; ctx.fillRect(0,0,512,512);
+  const s = 512/CS;
+  if (refFace && refFace.complete) ctx.drawImage(refFace, 0, 0, 512, 512);
+  if (refOutfit && refOutfit.complete) ctx.drawImage(refOutfit, 0, 0, 512, 512);
+}
+
+function render(thresh, sizePct, cx, cy) {
+  // Draw reference character first
+  drawRef();
+
+  // Process the item/buddy image
+  const off = document.createElement('canvas');
+  off.width=rawImg.naturalWidth; off.height=rawImg.naturalHeight;
+  const oc = off.getContext('2d');
+  oc.drawImage(rawImg, 0, 0);
+  const id = oc.getImageData(0,0,off.width,off.height), d=id.data;
+
+  if (thresh < 255) {
+    for (let i=0;i<d.length;i+=4) {
+      if (d[i]>thresh && d[i+1]>thresh && d[i+2]>thresh) d[i+3]=0;
+    }
+    oc.putImageData(id,0,0);
+  }
+
+  let x1=off.width,y1=off.height,x2=0,y2=0;
+  for (let y=0;y<off.height;y++) for (let x=0;x<off.width;x++) {
+    if (d[(y*off.width+x)*4+3]>10) { if(x<x1)x1=x;if(x>x2)x2=x;if(y<y1)y1=y;if(y>y2)y2=y; }
+  }
+  if (x2<=x1||y2<=y1) return;
+
+  const cw=x2-x1+1,ch=y2-y1+1;
+  const tSz=CS*sizePct/100, sc=tSz/Math.max(cw,ch);
+  const nw=Math.round(cw*sc), nh=Math.round(ch*sc);
+  const px=Math.round(CS*cx-nw/2), py=Math.round(CS*cy-nh);
+
+  const s=512/CS;
+  const tmp=document.createElement('canvas'); tmp.width=nw; tmp.height=nh;
+  tmp.getContext('2d').drawImage(off, x1,y1,cw,ch, 0,0,nw,nh);
+  ctx.drawImage(tmp, px*s, py*s, nw*s, nh*s);
+}
+
+function getProcessedCanvas(img, settings) {
+  const t=settings.thresh, sz=settings.size, cx=settings.cx/100, cy=settings.cy/100;
+  const off=document.createElement('canvas'); off.width=img.naturalWidth; off.height=img.naturalHeight;
+  const oc=off.getContext('2d'); oc.drawImage(img,0,0);
+  const id=oc.getImageData(0,0,off.width,off.height),d=id.data;
+  if(t<255){for(let i=0;i<d.length;i+=4){if(d[i]>t&&d[i+1]>t&&d[i+2]>t)d[i+3]=0;}oc.putImageData(id,0,0);}
+  let x1=off.width,y1=off.height,x2=0,y2=0;
+  for(let y=0;y<off.height;y++)for(let x=0;x<off.width;x++){if(d[(y*off.width+x)*4+3]>10){if(x<x1)x1=x;if(x>x2)x2=x;if(y<y1)y1=y;if(y>y2)y2=y;}}
+  if(x2<=x1||y2<=y1)return null;
+  const cw=x2-x1+1,ch=y2-y1+1,tSz=CS*sz/100,sc=tSz/Math.max(cw,ch);
+  const nw=Math.round(cw*sc),nh=Math.round(ch*sc),px=Math.round(CS*cx-nw/2),py=Math.round(CS*cy-nh);
+  const out=document.createElement('canvas');out.width=CS;out.height=CS;
+  out.getContext('2d').drawImage(off,x1,y1,cw,ch,px,py,nw,nh);
+  return out;
+}
+
+function downloadPNG() {
+  save();
+  if (!rawImg||!rawImg.complete) return;
+  const s = allSettings[currentFile] || getDef();
+  const out = getProcessedCanvas(rawImg, s);
+  if (!out) return;
+  const a=document.createElement('a'); a.download=outName(currentFile); a.href=out.toDataURL('image/png'); a.click();
+  $('status').textContent='Saved: '+outName(currentFile);
+}
+
+function downloadAll() {
+  save();
+  const files = mode==='buddy' ? allBuddyRaw : itemFiles;
+  let i=0, ok=0, fail=0;
+  const prog=$('prog'), bar=$('progBar');
+  prog.style.display='block';
+
+  function next() {
+    if (i >= files.length) {
+      prog.style.display='none';
+      $('status').textContent = `Done! ${ok} saved, ${fail} skipped`;
+      // Reload current image
+      loadSelected();
+      return;
+    }
+    const f = files[i];
+    bar.style.width = Math.round(i/files.length*100)+'%';
+    bar.textContent = `${i+1}/${files.length} ${f.replace('Buddy_','').replace('Items_','').replace('.png','')}`;
+    i++;
+
+    const img = new Image();
+    img.onload = () => {
+      const s = allSettings[f] || getDef();
+      const out = getProcessedCanvas(img, s);
+      if (out) {
+        const a=document.createElement('a'); a.download=outName(f); a.href=out.toDataURL('image/png'); a.click();
+        ok++;
+      } else { fail++; }
+      setTimeout(next, 400);
+    };
+    img.onerror = () => { fail++; setTimeout(next, 100); };
+    img.src = 'images/' + f;
+  }
+  next();
+}
+
+function exportAll() { save(); $('jsonOut').value=JSON.stringify(allSettings,null,2); }
+function importJSON() {
+  try { allSettings=JSON.parse($('jsonOut').value); load(currentFile); update(); $('status').textContent='Imported!'; }
+  catch(e) { $('status').textContent='Invalid JSON'; }
+}
+function prevImg() { const s=$('fileSel'); if(s.selectedIndex>0){s.selectedIndex--;loadSelected();} }
+function nextImg() { const s=$('fileSel'); if(s.selectedIndex<s.options.length-1){s.selectedIndex++;loadSelected();} }
+
+populateSelect();
+loadRef();
+loadSelected();
+</script>
+</body>
+</html>
