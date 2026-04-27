@@ -271,81 +271,77 @@ const container = document.getElementById('plazaContainer');
 const waitingEl = document.getElementById('waiting');
 const countEl = document.getElementById('countBadge');
 const sprites = {};
+let charCount = 0;
 
-function updatePlaza(snapshot) {
-  const data = snapshot.val() || {};
-  const entries = Object.entries(data);
+function createSprite(key, charData) {
+  const sprite = document.createElement('div');
+  sprite.className = 'char-sprite';
+  sprite.id = 'sprite-' + key;
+  sprite.dataset.charId = charData.id;
+  sprite.dataset.firebaseKey = key;
+  const canvas = document.createElement('canvas');
+  const nameLabel = document.createElement('div');
+  nameLabel.className = 'sprite-name';
+  sprite.appendChild(canvas);
+  sprite.appendChild(nameLabel);
+  container.appendChild(sprite);
+  sprites[key] = sprite;
 
-  waitingEl.style.display = entries.length === 0 ? 'flex' : 'none';
-  countEl.textContent = entries.length;
+  // Only allow dragging own character
+  if (charData.id === myCharId) {
+    sprite.addEventListener('mousedown', onDragStart);
+    sprite.addEventListener('touchstart', onDragStart, {passive: false});
+    sprite.style.outline = '3px solid #dc2743';
+    sprite.style.outlineOffset = '2px';
+    sprite.style.borderRadius = '12px';
+  } else {
+    sprite.style.cursor = 'default';
+  }
 
-  const existing = new Set();
+  // Set position
+  const px = charData.px != null ? charData.px : (10 + Math.random() * 70);
+  const py = charData.py != null ? charData.py : (15 + Math.random() * 60);
+  sprite.style.left = px + '%';
+  sprite.style.top = py + '%';
+  if (charData.px == null && db) {
+    db.ref('plaza/' + key + '/px').set(px);
+    db.ref('plaza/' + key + '/py').set(py);
+  }
 
-  entries.forEach(([key, charData]) => {
-    existing.add(key);
-    let sprite = sprites[key];
+  // Render character
+  sprite.querySelector('.sprite-name').textContent = charData.nameEn || '';
+  renderChar(sprite.querySelector('canvas'), charData);
 
-    if (!sprite) {
-      // Create new sprite
-      sprite = document.createElement('div');
-      sprite.className = 'char-sprite';
-      sprite.id = 'sprite-' + key;
-      sprite.dataset.charId = charData.id;
-      const canvas = document.createElement('canvas');
-      const nameLabel = document.createElement('div');
-      nameLabel.className = 'sprite-name';
-      sprite.appendChild(canvas);
-      sprite.appendChild(nameLabel);
-      container.appendChild(sprite);
-      sprites[key] = sprite;
+  charCount++;
+  countEl.textContent = charCount;
+  waitingEl.style.display = 'none';
+}
 
-      // Drag events
-      sprite.addEventListener('mousedown', onDragStart);
-      sprite.addEventListener('touchstart', onDragStart, {passive: false});
+function updateSprite(key, charData) {
+  const sprite = sprites[key];
+  if (!sprite) return;
 
-      // Highlight own character
-      if (charData.id === myCharId) {
-        sprite.style.outline = '3px solid #dc2743';
-        sprite.style.outlineOffset = '2px';
-        sprite.style.borderRadius = '12px';
-      }
-    }
-
-    // Update position (use saved or assign random once)
+  // Only update position if it's NOT our character being dragged
+  if (!(dragTarget && dragTarget.dataset.charId === charData.id)) {
     if (charData.px != null) {
-      // Only update from Firebase if not currently being dragged
-      if (!(dragTarget && dragTarget.dataset.charId === charData.id)) {
-        sprite.style.left = charData.px + '%';
-        sprite.style.top = charData.py + '%';
-      }
-    } else if (!sprite.dataset.posSet) {
-      // First time: assign random position and save to Firebase
-      const px = 10 + Math.random() * 70;
-      const py = 15 + Math.random() * 60;
-      sprite.style.left = px + '%';
-      sprite.style.top = py + '%';
-      sprite.dataset.posSet = '1';
-      // Save initial position to Firebase
-      const safeKey = key;
-      if (db) {
-        db.ref('plaza/' + safeKey + '/px').set(px);
-        db.ref('plaza/' + safeKey + '/py').set(py);
-      }
+      sprite.style.left = charData.px + '%';
+      sprite.style.top = charData.py + '%';
     }
+  }
 
-    // Update name and render
-    sprite.querySelector('.sprite-name').textContent = charData.nameEn || '';
-    const canvas = sprite.querySelector('canvas');
-    renderChar(canvas, charData);
-  });
+  // Re-render appearance (outfit/item/buddy might have changed)
+  sprite.querySelector('.sprite-name').textContent = charData.nameEn || '';
+  renderChar(sprite.querySelector('canvas'), charData);
+}
 
-  // Remove departed characters
-  Object.keys(sprites).forEach(key => {
-    if (!existing.has(key)) {
-      sprites[key].remove();
-      delete sprites[key];
-    }
-  });
+function removeSprite(key) {
+  if (sprites[key]) {
+    sprites[key].remove();
+    delete sprites[key];
+    charCount--;
+    countEl.textContent = charCount;
+    if (charCount === 0) waitingEl.style.display = 'flex';
+  }
 }
 
 // === SCREENSHOT ===
@@ -408,7 +404,10 @@ s1.onload = () => {
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.database();
     loadImages(() => {
-      db.ref('plaza').on('value', updatePlaza);
+      const ref = db.ref('plaza');
+      ref.on('child_added', snap => createSprite(snap.key, snap.val()));
+      ref.on('child_changed', snap => updateSprite(snap.key, snap.val()));
+      ref.on('child_removed', snap => removeSprite(snap.key));
     });
   };
   document.head.appendChild(s2);
