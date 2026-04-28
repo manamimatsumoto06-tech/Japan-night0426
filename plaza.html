@@ -31,7 +31,7 @@ body{font-family:'Helvetica Neue',Arial,sans-serif;background:#fce4ec;min-height
 </head>
 <body>
 <div class="header">
-  <a class="back-link" href="index.html">←</a>
+  <a class="back-link" href="#" onclick="leavePlaza()">←</a>
   <h1>🏯 Japan Night Plaza</h1>
   <p>Drag your character around!</p>
   <span class="count-badge" id="countBadge">0</span>
@@ -248,6 +248,9 @@ function onDragMove(e) {
 function onDragEnd(e) {
   if (!dragTarget) return;
   dragTarget.classList.remove('dragging');
+  // Remove red outline after first drag
+  dragTarget.style.outline = 'none';
+  dragTarget.style.outlineOffset = '0';
   // Save position to Firebase
   const charId = dragTarget.dataset.charId;
   const container = document.getElementById('plazaContainer');
@@ -344,6 +347,26 @@ function removeSprite(key) {
   }
 }
 
+// === LEAVE PLAZA ===
+function leavePlaza() {
+  if (db && myCharId) {
+    const safeId = myCharId.replace(/[.#$/\[\]]/g, '_');
+    db.ref('plaza/' + safeId).remove().then(() => {
+      window.location.href = 'index.html';
+    });
+  } else {
+    window.location.href = 'index.html';
+  }
+}
+
+// Also remove on page close/refresh
+window.addEventListener('beforeunload', () => {
+  if (db && myCharId) {
+    const safeId = myCharId.replace(/[.#$/\[\]]/g, '_');
+    db.ref('plaza/' + safeId).remove();
+  }
+});
+
 // === SCREENSHOT ===
 function takeScreenshot() {
   const c = document.getElementById('plazaContainer');
@@ -386,10 +409,20 @@ function takeScreenshot() {
     ctx.textAlign = 'center';
     ctx.fillText('🏯 Japan Night Plaza 🌸', cw/2, 24);
 
+    const dataUrl = cv.toDataURL('image/png');
+    // Try download link first
     const link = document.createElement('a');
     link.download = 'japan-night-plaza.png';
-    link.href = cv.toDataURL('image/png');
+    link.href = dataUrl;
     link.click();
+    // Also open in new tab for iOS (download doesn't always work)
+    setTimeout(() => {
+      const w = window.open();
+      if (w) {
+        w.document.write('<img src="' + dataUrl + '" style="max-width:100%">');
+        w.document.title = 'Japan Night Plaza Screenshot';
+      }
+    }, 500);
   };
   bgImg.src = 'images/Background_Sakura.png';
 }
