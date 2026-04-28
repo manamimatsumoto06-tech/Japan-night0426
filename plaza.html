@@ -410,19 +410,13 @@ function takeScreenshot() {
     ctx.fillText('🏯 Japan Night Plaza 🌸', cw/2, 24);
 
     const dataUrl = cv.toDataURL('image/png');
-    // Try download link first
-    const link = document.createElement('a');
-    link.download = 'japan-night-plaza.png';
-    link.href = dataUrl;
-    link.click();
-    // Also open in new tab for iOS (download doesn't always work)
-    setTimeout(() => {
-      const w = window.open();
-      if (w) {
-        w.document.write('<img src="' + dataUrl + '" style="max-width:100%">');
-        w.document.title = 'Japan Night Plaza Screenshot';
-      }
-    }, 500);
+    // Show image in overlay for long-press save
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML = '<p style="color:#fff;font-size:14px;margin-bottom:12px;text-align:center;">Long press the image to save to Camera Roll</p>'
+      + '<img src="' + dataUrl + '" style="max-width:90%;max-height:70vh;border-radius:8px;">'
+      + '<button onclick="this.parentElement.remove()" style="margin-top:16px;padding:10px 30px;border-radius:20px;border:none;background:#fff;font-size:14px;font-weight:600;cursor:pointer;">Close</button>';
+    document.body.appendChild(overlay);
   };
   bgImg.src = 'images/Background_Sakura.png';
 }
