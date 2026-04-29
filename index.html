@@ -98,7 +98,19 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:#faf
 <button class="export-btn" onclick="exportAllPos()">📋 全設定をコピー</button>
 </div>
 </div>
-</div><div class="toast" id="toast"></div>
+</div>
+<div id="guestModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:200;display:none;align-items:center;justify-content:center;">
+<div style="background:#fff;border-radius:16px;padding:28px 24px;width:90%;max-width:320px;text-align:center;">
+<div style="font-size:16px;font-weight:600;color:#262626;margin-bottom:16px;">Enter your name</div>
+<input id="guestNameEn" type="text" placeholder="Your Name (English)" style="width:100%;padding:10px 14px;border:1px solid #dbdbdb;border-radius:8px;font-size:15px;margin-bottom:10px;outline:none;">
+<input id="guestNameJp" type="text" placeholder="カタカナ (optional)" style="width:100%;padding:10px 14px;border:1px solid #dbdbdb;border-radius:8px;font-size:15px;margin-bottom:16px;outline:none;">
+<div style="display:flex;gap:8px;">
+<button onclick="closeGuestModal()" style="flex:1;padding:10px;border-radius:20px;border:1px solid #dbdbdb;background:#fff;font-size:14px;font-weight:600;cursor:pointer;">Cancel</button>
+<button onclick="confirmGuestName()" style="flex:1;padding:10px;border-radius:20px;border:none;background:linear-gradient(45deg,#f09433,#dc2743);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">OK</button>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
 <script>
 const IMAGE_DATA={'face_ale':'images/face_ale.png',
 'face_alfredo':'images/face_alfredo.png',
@@ -192,8 +204,11 @@ const IMAGE_DATA={'face_ale':'images/face_ale.png',
 'item_shavedice':'images/item_shavedice.png',
 'item_sushi':'images/item_sushi.png',
 'item_taiyaki':'images/item_taiyaki.png',
-'item_takoyaki':'images/item_takoyaki.png'};
-const CHARACTERS=[{id:'ale',name:'アレ',nameEn:'Ale',face:'face_ale'},{id:'alfredo',name:'アルフレド',nameEn:'Alfredo',face:'face_alfredo'},{id:'anthony',name:'アンソニー',nameEn:'Anthony',face:'face_anthony'},{id:'ashwin',name:'アシュウィン',nameEn:'Ashwin',face:'face_ashwin'},{id:'caroline',name:'キャロライン',nameEn:'Caroline',face:'face_caroline'},{id:'chema',name:'チェマ',nameEn:'Chema',face:'face_chema'},{id:'claudia',name:'クラウディア',nameEn:'Claudia',face:'face_claudia'},{id:'hannah',name:'ハンナ',nameEn:'Hannah',face:'face_hannah'},{id:'julian',name:'フリアン',nameEn:'Julian',face:'face_julian'},{id:'manami',name:'マナミ',nameEn:'Manami',face:'face_manami'},{id:'mariana',name:'マリアナ',nameEn:'Mariana',face:'face_mariana'},{id:'mariana_gurgel',name:'マリアナG',nameEn:'Mariana Gurgel',face:'face_mariana_gurgel'},{id:'maría_jesús',name:'マリア・ヘスス',nameEn:'María Jesús',face:'face_maría_jesús'},{id:'masa',name:'マサ',nameEn:'Masa',face:'face_masa'},{id:'megan',name:'メーガン',nameEn:'Megan',face:'face_megan'},{id:'pao',name:'パオ',nameEn:'Pao',face:'face_pao'},{id:'rodrigo',name:'ロドリゴ',nameEn:'Rodrigo',face:'face_rodrigo'},{id:'santy',name:'サンティ',nameEn:'Santy',face:'face_santy'},{id:'stav',name:'スタヴ',nameEn:'Stav',face:'face_stav'}];
+'item_takoyaki':'images/item_takoyaki.png',
+'face_guest1':'images/face_guest1.png',
+'face_guest2':'images/face_guest2.png',
+'face_guest3':'images/face_guest3.png'};
+const CHARACTERS=[{id:'ale',name:'アレ',nameEn:'Ale',face:'face_ale'},{id:'alfredo',name:'アルフレド',nameEn:'Alfredo',face:'face_alfredo'},{id:'anthony',name:'アンソニー',nameEn:'Anthony',face:'face_anthony'},{id:'ashwin',name:'アシュウィン',nameEn:'Ashwin',face:'face_ashwin'},{id:'caroline',name:'キャロライン',nameEn:'Caroline',face:'face_caroline'},{id:'chema',name:'チェマ',nameEn:'Chema',face:'face_chema'},{id:'claudia',name:'クラウディア',nameEn:'Claudia',face:'face_claudia'},{id:'hannah',name:'ハンナ',nameEn:'Hannah',face:'face_hannah'},{id:'julian',name:'フリアン',nameEn:'Julian',face:'face_julian'},{id:'manami',name:'マナミ',nameEn:'Manami',face:'face_manami'},{id:'mariana',name:'マリアナ',nameEn:'Mariana',face:'face_mariana'},{id:'mariana_gurgel',name:'マリアナG',nameEn:'Mariana Gurgel',face:'face_mariana_gurgel'},{id:'maría_jesús',name:'マリア・ヘスス',nameEn:'María Jesús',face:'face_maría_jesús'},{id:'masa',name:'マサ',nameEn:'Masa',face:'face_masa'},{id:'megan',name:'メーガン',nameEn:'Megan',face:'face_megan'},{id:'pao',name:'パオ',nameEn:'Pao',face:'face_pao'},{id:'rodrigo',name:'ロドリゴ',nameEn:'Rodrigo',face:'face_rodrigo'},{id:'santy',name:'サンティ',nameEn:'Santy',face:'face_santy'},{id:'stav',name:'スタヴ',nameEn:'Stav',face:'face_stav'},{id:'guest1',name:'ゲスト',nameEn:'Guest 1',face:'face_guest1',isGuest:true},{id:'guest2',name:'ゲスト',nameEn:'Guest 2',face:'face_guest2',isGuest:true},{id:'guest3',name:'ゲスト',nameEn:'Guest 3',face:'face_guest3',isGuest:true}];
 const OUTFITS=[{id:'none',name:'None',emoji:'✖️'},{id:'kimono',name:'Kimono',emoji:'👘',img:'outfit_kimono'},{id:'yukata6',name:'Yukata',emoji:'🎐',img:'outfit_yukata6'},{id:'kimono2',name:'Kimono 2',emoji:'🌸',img:'outfit_kimono2'},{id:'kimono4',name:'Kimono 4',emoji:'🎍',img:'outfit_kimono4'},{id:'kimono5',name:'Kimono 5',emoji:'🏵️',img:'outfit_kimono5'},{id:'kimono6',name:'Kimono 6',emoji:'🎎',img:'outfit_kimono6'},{id:'kimono8',name:'Kimono 8',emoji:'🪻',img:'outfit_kimono8'},{id:'ninja',name:'Ninja',emoji:'🥷',img:'outfit_ninja'},{id:'dress',name:'Dress',emoji:'👗',img:'outfit_dress'},{id:'uniform1',name:'Uniform 1',emoji:'🎓',img:'outfit_uniform1'},{id:'uniform2',name:'Uniform 2',emoji:'📚',img:'outfit_uniform2'},{id:'ie1',name:'IE Uniform',emoji:'🏫',img:'outfit_ie1'},{id:'kimono9',name:'Kimono 9',emoji:'🌺',img:'outfit_kimono9'},{id:'dress2',name:'Dress 2',emoji:'💃',img:'outfit_dress2'},{id:'mario1',name:'Mario',emoji:'🍄',img:'outfit_mario1'},{id:'mario2',name:'Luigi',emoji:'💚',img:'outfit_mario2'},{id:'happi2',name:'Happi 2',emoji:'🎪',img:'outfit_happi2'},{id:'dress3',name:'Dress 3',emoji:'💐',img:'outfit_dress3'},{id:'japan1',name:'Japan 2',emoji:'🗾',img:'outfit_japan1'}];
 const ITEMS=[{id:'none',name:'None',emoji:'✖️'},{id:'fan',name:'Fan',emoji:'🪭',img:'item_fan'},{id:'sensu',name:'Sensu',emoji:'🪭',img:'item_sensu'},{id:'katana',name:'Katana',emoji:'🗡️',img:'item_katana'},{id:'lantern',name:'Lantern',emoji:'🏮',img:'item_lantern'},{id:'onigiri',name:'Onigiri',emoji:'🍙',img:'item_onigiri'},{id:'dango',name:'Dango',emoji:'🍡',img:'item_dango'},{id:'taiyaki',name:'Taiyaki',emoji:'🐟',img:'item_taiyaki'},{id:'takoyaki',name:'Takoyaki',emoji:'🐙',img:'item_takoyaki'},{id:'sushi',name:'Sushi',emoji:'🍣',img:'item_sushi'},{id:'ramen',name:'Ramen',emoji:'🍜',img:'item_ramen'},{id:'curry',name:'Curry Rice',emoji:'🍛',img:'item_curry'},{id:'cupnoodle',name:'Cup Noodle',emoji:'🍜',img:'item_cupnoodle'},{id:'karaage',name:'Karaage',emoji:'🍗',img:'item_karaage'},{id:'eggsandwich',name:'Egg Sandwich',emoji:'🥪',img:'item_eggsandwich'},{id:'matcha',name:'Matcha',emoji:'🍵',img:'item_matcha'},{id:'ramune',name:'Ramune',emoji:'🥤',img:'item_ramune'},{id:'shavedice',name:'Shaved Ice',emoji:'🍧',img:'item_shavedice'},{id:'beer1',name:'Beer',emoji:'🍺',img:'item_beer1'},{id:'beer2',name:'Beer 2',emoji:'🍻',img:'item_beer2'},{id:'sake',name:'Sake',emoji:'🍶',img:'item_sake'},{id:'strongzero',name:'Strong Zero',emoji:'🥫',img:'item_strongzero'},{id:'whisky',name:'Whisky',emoji:'🥃',img:'item_whisky'},{id:'yakult',name:'Yakult',emoji:'🧴',img:'item_yakult'},{id:'aquarius',name:'Aquarius',emoji:'💧',img:'item_aquarius'},{id:'pocky',name:'Pocky',emoji:'🍫',img:'item_pocky'},{id:'kitkat',name:'KitKat',emoji:'🍫',img:'item_kitkat'},{id:'peachgummy',name:'Peach Gummy',emoji:'🍑',img:'item_peachgummy'},{id:'ryukakusan',name:'Ryukakusan',emoji:'💊',img:'item_ryukakusan'},{id:'bell',name:'Bell',emoji:'🔔',img:'item_bell'},{id:'daruma',name:'Daruma',emoji:'🔴',img:'item_daruma'},{id:'luckycat',name:'Lucky Cat',emoji:'🐱',img:'item_luckycat'}];
 const BUDDIES=[{id:'none',name:'None',emoji:'✖️'},{id:'pikachu',name:'Pikachu',emoji:'⚡',img:'buddy_pikachu'},{id:'totoro',name:'Totoro',emoji:'🌿',img:'buddy_totoro'},{id:'mario',name:'Mario',emoji:'🍄',img:'buddy_mario'},{id:'luigi',name:'Luigi',emoji:'💚',img:'buddy_luigi'},{id:'peach',name:'Peach',emoji:'👸',img:'buddy_peach'},{id:'bowser',name:'Bowser',emoji:'🐢',img:'buddy_bowser'},{id:'dk',name:'Donkey Kong',emoji:'🦍',img:'buddy_dk'},{id:'doraemon',name:'Doraemon',emoji:'🔵',img:'buddy_doraemon'},{id:'tamagotchi',name:'Tamagotchi',emoji:'🥚',img:'buddy_tamagotchi'},{id:'totoro2',name:'Totoro 2',emoji:'🌳',img:'buddy_totoro2'},{id:'naruto',name:'Naruto',emoji:'🍥',img:'buddy_naruto'},{id:'anpanman',name:'Anpanman',emoji:'����',img:'buddy_anpanman'},{id:'anya',name:'Anya',emoji:'🥜',img:'buddy_anya'},{id:'eren',name:'Eren',emoji:'⚔️',img:'buddy_eren'},{id:'goku',name:'Goku',emoji:'🟠',img:'buddy_goku'},{id:'hellokitty',name:'Hello Kitty',emoji:'🎀',img:'buddy_hellokitty'},{id:'hinata',name:'Hinata',emoji:'🏐',img:'buddy_hinata'},{id:'link',name:'Link',emoji:'🗡️',img:'buddy_link'},{id:'luffy',name:'Luffy',emoji:'👒',img:'buddy_luffy'},{id:'sailormoon',name:'Sailor Moon',emoji:'🌙',img:'buddy_sailormoon'},{id:'sakuragi',name:'Sakuragi',emoji:'🏀',img:'buddy_sakuragi'},{id:'sora',name:'Sora',emoji:'🔑',img:'buddy_sora'},{id:'tanjiro',name:'Tanjiro',emoji:'🔥',img:'buddy_tanjiro'},{id:'zoro',name:'Zoro',emoji:'⚔️',img:'buddy_zoro'}];
@@ -237,15 +252,43 @@ function saveImage(){const l=document.createElement('a');l.download='japan-night
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
 buildGrid(OUTFITS,'grid-outfit','outfit');buildGrid(ITEMS,'grid-item','item');buildGrid(BUDDIES,'grid-buddy','buddy');
 
+let pendingGuestChar=null;
 function buildNameGrid(){
 const g=document.getElementById('nameGrid');g.innerHTML='';
 CHARACTERS.forEach(ch=>{
 const btn=document.createElement('button');
 btn.className='name-btn';
+if(ch.isGuest){
+btn.innerHTML='<div style="font-size:22px;">👤</div><div class="kanji">Guest</div>';
+btn.style.background='linear-gradient(135deg,#fce4ec,#f3e5f5)';
+btn.onclick=()=>openGuestModal(ch);
+}else{
 btn.innerHTML='<div style="font-size:15px;font-weight:bold;">'+ch.name+'</div><div class="kanji">'+ch.nameEn+'</div>';
 btn.onclick=()=>selectCharacter(ch);
+}
 g.appendChild(btn);
 });
+}
+function openGuestModal(ch){
+pendingGuestChar=ch;
+document.getElementById('guestNameEn').value='';
+document.getElementById('guestNameJp').value='';
+const modal=document.getElementById('guestModal');
+modal.style.display='flex';
+setTimeout(()=>document.getElementById('guestNameEn').focus(),100);
+}
+function closeGuestModal(){
+document.getElementById('guestModal').style.display='none';
+pendingGuestChar=null;
+}
+function confirmGuestName(){
+const nameEn=document.getElementById('guestNameEn').value.trim();
+if(!nameEn){showToast('Please enter your name');return;}
+const nameJp=document.getElementById('guestNameJp').value.trim()||nameEn;
+pendingGuestChar.nameEn=nameEn;
+pendingGuestChar.name=nameJp;
+document.getElementById('guestModal').style.display='none';
+selectCharacter(pendingGuestChar);
 }
 function selectCharacter(ch){
 currentChar=ch;
@@ -268,7 +311,7 @@ document.getElementById('backBtn').style.display='none';
 
 // 編集モード
 let editMode=false;
-let faceAdjust={"ale": {"x": 0, "y": -27, "scale": 99}, "alfredo": {"x": 0, "y": -78, "scale": 100}, "anthony": {"x": 0, "y": -83, "scale": 100}, "ashwin": {"x": -9, "y": -75, "scale": 100}, "caroline": {"x": 0, "y": -34, "scale": 100}, "chema": {"x": -14, "y": -86, "scale": 100}, "claudia": {"x": 0, "y": -20, "scale": 100}, "julian": {"x": -10, "y": -17, "scale": 88}, "mariana": {"x": 0, "y": -61, "scale": 100}, "mar\u00eda_jes\u00fas": {"x": 0, "y": -30, "scale": 100}, "megan": {"x": 0, "y": 15, "scale": 100}, "rodrigo": {"x": -8, "y": -66, "scale": 100}, "stav": {"x": 0, "y": -33, "scale": 100}, "hannah": {"x": -17, "y": -1, "scale": 103}, "mariana_gurgel": {"x": -11, "y": -12, "scale": 100}, "pao": {"x": -19, "y": 23, "scale": 100}, "santy": {"x": 0, "y": -55, "scale": 100}, "manami": {"x": 0, "y": 0, "scale": 100}, "masa": {"x": 0, "y": -33, "scale": 135}};  // {charId: {x:0, y:0, scale:100}}
+let faceAdjust={"ale": {"x": 0, "y": -27, "scale": 99}, "alfredo": {"x": 0, "y": -78, "scale": 100}, "anthony": {"x": 0, "y": -83, "scale": 100}, "ashwin": {"x": -9, "y": -75, "scale": 100}, "caroline": {"x": 0, "y": -34, "scale": 100}, "chema": {"x": -14, "y": -86, "scale": 100}, "claudia": {"x": 0, "y": -20, "scale": 100}, "julian": {"x": -10, "y": -17, "scale": 88}, "mariana": {"x": 0, "y": -61, "scale": 100}, "mar\u00eda_jes\u00fas": {"x": 0, "y": -30, "scale": 100}, "megan": {"x": 0, "y": 15, "scale": 100}, "rodrigo": {"x": -8, "y": -66, "scale": 100}, "stav": {"x": 0, "y": -33, "scale": 100}, "hannah": {"x": -17, "y": -1, "scale": 103}, "mariana_gurgel": {"x": -11, "y": -12, "scale": 100}, "pao": {"x": -19, "y": 23, "scale": 100}, "santy": {"x": 0, "y": -55, "scale": 100}, "manami": {"x": 0, "y": 0, "scale": 100}, "masa": {"x": 0, "y": -33, "scale": 135}, "guest1": {"x": 0, "y": 0, "scale": 100}, "guest2": {"x": 0, "y": 0, "scale": 100}, "guest3": {"x": 0, "y": 0, "scale": 100}};  // {charId: {x:0, y:0, scale:100}}
 
 function toggleEdit(){
 const btn=document.getElementById('editToggle');
@@ -361,9 +404,14 @@ async function joinPlaza() {
   try {
     await initFirebase();
     const db = firebase.database();
-    const safeId = currentChar.id.replace(/[.#$/\[\]]/g, '_');
+    // For guests, use unique ID so multiple guests can join
+    let plazaId = currentChar.id;
+    if(currentChar.isGuest){
+      plazaId = currentChar.id + '_' + Date.now();
+    }
+    const safeId = plazaId.replace(/[.#$/\[\]]/g, '_');
     await db.ref('plaza/' + safeId).set({
-      id: currentChar.id,
+      id: plazaId,
       name: currentChar.name,
       nameEn: currentChar.nameEn,
       face: currentChar.face,
@@ -372,7 +420,7 @@ async function joinPlaza() {
       buddy: sel.buddy,
       ts: Date.now()
     });
-    window.location.href = 'plaza.html?char=' + encodeURIComponent(currentChar.id);
+    window.location.href = 'plaza.html?char=' + encodeURIComponent(plazaId);
   } catch (e) {
     console.error(e);
     showToast('Connection error...');

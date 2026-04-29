@@ -18,7 +18,7 @@ body{font-family:'Helvetica Neue',Arial,sans-serif;background:#fce4ec;min-height
 .char-sprite{position:absolute;width:100px;height:100px;cursor:grab;transition:none;z-index:10;}
 .char-sprite.dragging{cursor:grabbing;z-index:50;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3));}
 .char-sprite canvas{width:100%;height:100%;pointer-events:none;}
-.char-sprite .sprite-name{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6),0 0 6px rgba(0,0,0,0.3);pointer-events:none;}
+.char-sprite .sprite-name{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.6),0 0 6px rgba(0,0,0,0.3);pointer-events:none;text-align:center;line-height:1.3;}
 
 .waiting{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#8b6b6b;z-index:10;background:rgba(255,255,255,0.8);padding:30px;border-radius:20px;}
 .waiting .emoji{font-size:48px;animation:bounce 2s infinite;}
@@ -146,9 +146,12 @@ const IMAGE_DATA={'face_ale':'images/face_ale.png',
 'item_ryukakusan':'images/item_ryukakusan.png',
 'item_bell':'images/item_bell.png',
 'item_daruma':'images/item_daruma.png',
-'item_luckycat':'images/item_luckycat.png'};
+'item_luckycat':'images/item_luckycat.png',
+'face_guest1':'images/face_guest1.png',
+'face_guest2':'images/face_guest2.png',
+'face_guest3':'images/face_guest3.png'};
 
-const faceAdjust={"ale":{"x":0,"y":-27,"scale":99},"alfredo":{"x":0,"y":-78,"scale":100},"anthony":{"x":0,"y":-83,"scale":100},"ashwin":{"x":-9,"y":-75,"scale":100},"caroline":{"x":0,"y":-34,"scale":100},"chema":{"x":-14,"y":-86,"scale":100},"claudia":{"x":0,"y":-20,"scale":100},"julian":{"x":-10,"y":-17,"scale":88},"mariana":{"x":0,"y":-61,"scale":100},"maría_jesús":{"x":0,"y":-30,"scale":100},"megan":{"x":0,"y":15,"scale":100},"rodrigo":{"x":-8,"y":-66,"scale":100},"stav":{"x":0,"y":-33,"scale":100},"hannah":{"x":-17,"y":-1,"scale":103},"mariana_gurgel":{"x":-11,"y":-12,"scale":100},"pao":{"x":-19,"y":23,"scale":100},"santy":{"x":0,"y":-55,"scale":100},"manami":{"x":0,"y":0,"scale":100},"masa":{"x":0,"y":-33,"scale":135}};
+const faceAdjust={"ale":{"x":0,"y":-27,"scale":99},"alfredo":{"x":0,"y":-78,"scale":100},"anthony":{"x":0,"y":-83,"scale":100},"ashwin":{"x":-9,"y":-75,"scale":100},"caroline":{"x":0,"y":-34,"scale":100},"chema":{"x":-14,"y":-86,"scale":100},"claudia":{"x":0,"y":-20,"scale":100},"julian":{"x":-10,"y":-17,"scale":88},"mariana":{"x":0,"y":-61,"scale":100},"maría_jesús":{"x":0,"y":-30,"scale":100},"megan":{"x":0,"y":15,"scale":100},"rodrigo":{"x":-8,"y":-66,"scale":100},"stav":{"x":0,"y":-33,"scale":100},"hannah":{"x":-17,"y":-1,"scale":103},"mariana_gurgel":{"x":-11,"y":-12,"scale":100},"pao":{"x":-19,"y":23,"scale":100},"santy":{"x":0,"y":-55,"scale":100},"manami":{"x":0,"y":0,"scale":100},"masa":{"x":0,"y":-33,"scale":135},"guest1":{"x":0,"y":0,"scale":100},"guest2":{"x":0,"y":0,"scale":100},"guest3":{"x":0,"y":0,"scale":100}};
 
 // === IMAGE LOADING ===
 const images = {};
@@ -179,7 +182,9 @@ function renderChar(canvas, data) {
   // Face
   const faceImg = images[data.face];
   if (faceImg) {
-    const adj = faceAdjust[data.id] || {x:0, y:0, scale:100};
+    // For guest IDs like "guest1_1234567", use base id for faceAdjust
+    const baseId = data.id.replace(/_\d{10,}$/, '');
+    const adj = faceAdjust[baseId] || faceAdjust[data.id] || {x:0, y:0, scale:100};
     const s = adj.scale / 100;
     const dw = W * s, dh = H * s;
     const dx = (W - dw) / 2 + adj.x * (W/1024);
@@ -311,8 +316,10 @@ function createSprite(key, charData) {
     db.ref('plaza/' + key + '/py').set(py);
   }
 
-  // Render character
-  sprite.querySelector('.sprite-name').textContent = charData.nameEn || '';
+  // Render character with both names
+  const nameText = charData.name && charData.name !== charData.nameEn ? charData.name + '\n' + charData.nameEn : (charData.nameEn || '');
+  const nameEl = sprite.querySelector('.sprite-name');
+  nameEl.innerHTML = nameText.replace('\n', '<br>');
   renderChar(sprite.querySelector('canvas'), charData);
 
   charCount++;
@@ -333,7 +340,8 @@ function updateSprite(key, charData) {
   }
 
   // Re-render appearance (outfit/item/buddy might have changed)
-  sprite.querySelector('.sprite-name').textContent = charData.nameEn || '';
+  const nameText = charData.name && charData.name !== charData.nameEn ? charData.name + '\n' + charData.nameEn : (charData.nameEn || '');
+  sprite.querySelector('.sprite-name').innerHTML = nameText.replace('\n', '<br>');
   renderChar(sprite.querySelector('canvas'), charData);
 }
 
@@ -390,14 +398,22 @@ function takeScreenshot() {
       const sw = s.clientWidth, sh = s.clientHeight;
       const canvas = s.querySelector('canvas');
       ctx.drawImage(canvas, left, top, sw, sh);
-      // Name
-      const name = s.querySelector('.sprite-name').textContent;
+      // Name (both katakana and English)
+      const nameEl = s.querySelector('.sprite-name');
+      const nameLines = nameEl.innerText.split('\n');
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(0,0,0,0.6)';
       ctx.shadowBlur = 3;
-      ctx.fillText(name, left + sw/2, top + sh + 12);
+      if(nameLines.length > 1){
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillText(nameLines[0], left + sw/2, top + sh + 10);
+        ctx.font = '9px sans-serif';
+        ctx.fillText(nameLines[1], left + sw/2, top + sh + 22);
+      } else {
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(nameLines[0], left + sw/2, top + sh + 12);
+      }
       ctx.shadowBlur = 0;
     });
 
