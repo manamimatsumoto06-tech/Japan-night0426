@@ -454,4 +454,25 @@ function resetPlaza() {
   }
 }
 
-// ===
+// === INIT ===
+const s1 = document.createElement('script');
+s1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+s1.onload = () => {
+  const s2 = document.createElement('script');
+  s2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
+  s2.onload = () => {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    loadImages(() => {
+      const ref = db.ref('plaza');
+      ref.on('child_added', snap => createSprite(snap.key, snap.val()));
+      ref.on('child_changed', snap => updateSprite(snap.key, snap.val()));
+      ref.on('child_removed', snap => removeSprite(snap.key));
+    });
+  };
+  document.head.appendChild(s2);
+};
+document.head.appendChild(s1);
+</script>
+</body>
+</html>
