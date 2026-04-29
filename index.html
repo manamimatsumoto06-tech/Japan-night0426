@@ -373,4 +373,119 @@ document.getElementById('backBtn').style.display='none';
 
 // 編集モード
 let editMode=false;
-let faceAdjust={"ale": {"x": 0, "y": -27, "scale": 99}, "alfredo": {"x": 0, "y": -78, "scale": 100}, "anthony": {"x": 0, "y": -83, "scale": 100}, "ashwin": {"x": -9, "y": -75, "scale": 100}, "caroline": {"x": 0, "y": -34, "scale": 100}, "chema": {"x": -14, "y": -86, "scale": 100}, "claudia": {"x": 0, "y": -20, "scale": 100}, "julian": {"x": -10, "y": -17, "scale": 88}, "mariana": {"x": 0, "y": -61, "scale": 100}, "mar\u00eda_jes\u00fas": {"x": 0, "y": -30, "scale": 100}, "megan": {"x": 0, "y": 15, "scale": 100}, "rodrigo": {"x": -8, "y": -66, "scale": 100}, "stav": {"x": 0, "y": -33, "scale": 100}, "hannah": {"x": -17, "y": -1, "scale": 103}, "mariana_gurgel": {"x": -11, "y": -12, "scale": 100}, "pao": {"x": -19, "y": 23, "scale": 100}, "santy": {"x": 0, "y": -55, "scale": 100}, "manami": {"x": 0, "y": 0, "scale": 100}, "masa": {"x": 0, "y": -33, "scale": 135}, "guest1": {"x": 0, "y": 0, "scale": 100}, "guest2": {"x": 0, "y": 0, "scale": 10
+let faceAdjust={"ale": {"x": 0, "y": -27, "scale": 99}, "alfredo": {"x": 0, "y": -78, "scale": 100}, "anthony": {"x": 0, "y": -83, "scale": 100}, "ashwin": {"x": -9, "y": -75, "scale": 100}, "caroline": {"x": 0, "y": -34, "scale": 100}, "chema": {"x": -14, "y": -86, "scale": 100}, "claudia": {"x": 0, "y": -20, "scale": 100}, "julian": {"x": -10, "y": -17, "scale": 88}, "mariana": {"x": 0, "y": -61, "scale": 100}, "mar\u00eda_jes\u00fas": {"x": 0, "y": -30, "scale": 100}, "megan": {"x": 0, "y": 15, "scale": 100}, "rodrigo": {"x": -8, "y": -66, "scale": 100}, "stav": {"x": 0, "y": -33, "scale": 100}, "hannah": {"x": -17, "y": -1, "scale": 103}, "mariana_gurgel": {"x": -11, "y": -12, "scale": 100}, "pao": {"x": -19, "y": 23, "scale": 100}, "santy": {"x": 0, "y": -55, "scale": 100}, "manami": {"x": 0, "y": 0, "scale": 100}, "masa": {"x": 0, "y": -33, "scale": 135}, "guest1": {"x": 0, "y": 0, "scale": 100}, "guest2": {"x": 0, "y": 0, "scale": 100}, "guest3": {"x": 0, "y": 0, "scale": 100}};  // {charId: {x:0, y:0, scale:100}}
+
+function toggleEdit(){
+const btn=document.getElementById('editToggle');
+const panel=document.getElementById('editPanel');
+editMode=!editMode;
+btn.classList.toggle('active');
+panel.classList.toggle('active');
+if(editMode){loadFacePos();}
+}
+
+function loadFacePos(){
+const adj=faceAdjust[currentChar.id]||{x:0,y:0,scale:100};
+document.getElementById('sliderX').value=adj.x;
+document.getElementById('sliderY').value=adj.y;
+document.getElementById('sliderS').value=adj.scale;
+document.getElementById('valX').textContent=adj.x;
+document.getElementById('valY').textContent=adj.y;
+document.getElementById('valS').textContent=adj.scale;
+}
+
+function updateFacePos(){
+const x=parseInt(document.getElementById('sliderX').value);
+const y=parseInt(document.getElementById('sliderY').value);
+const s=parseInt(document.getElementById('sliderS').value);
+document.getElementById('valX').textContent=x;
+document.getElementById('valY').textContent=y;
+document.getElementById('valS').textContent=s;
+faceAdjust[currentChar.id]={x,y,scale:s};
+render();
+}
+
+function saveFacePos(){
+showToast('💾 '+currentChar.nameEn+' の位置を保存しました');
+}
+
+function exportAllPos(){
+const json=JSON.stringify(faceAdjust,null,2);
+navigator.clipboard.writeText(json).then(()=>{
+showToast('📋 設定をクリップボードにコピーしました');
+}).catch(()=>{
+prompt('この設定をコピーしてください:',json);
+});
+}
+
+buildNameGrid();
+
+
+// ?edit がURLにある時だけ編集ボタンを表示
+const isEditMode = window.location.search.includes('edit');
+if(isEditMode){
+  document.getElementById('editBtnWrap').style.display='block';
+}
+
+loadImages(()=>{buildCharSelect();buildGrid(OUTFITS,'grid-outfit','outfit');buildGrid(ITEMS,'grid-item','item');buildGrid(BUDDIES,'grid-buddy','buddy');render();});
+
+// --- Firebase ---
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAOxLXI0Cww8VTpCILdtBS4U3DYvgBjALE",
+  authDomain: "japan-night-e4427.firebaseapp.com",
+  databaseURL: "https://japan-night-e4427-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "japan-night-e4427"
+};
+
+let firebaseReady = false;
+function initFirebase() {
+  if (firebaseReady) return Promise.resolve();
+  return new Promise((resolve) => {
+    const s1 = document.createElement('script');
+    s1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+    s1.onload = () => {
+      const s2 = document.createElement('script');
+      s2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
+      s2.onload = () => {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        firebaseReady = true;
+        resolve();
+      };
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s1);
+  });
+}
+
+async function joinPlaza() {
+  if (sel.outfit === 'none' && sel.item === 'none' && sel.buddy === 'none') {
+    showToast('Choose an outfit first!');
+    return;
+  }
+  showToast('Joining Plaza...');
+  try {
+    await initFirebase();
+    const db = firebase.database();
+    // For guests, use unique ID so multiple guests can join
+    let plazaId = currentChar.id;
+    if(currentChar.isGuest){
+      plazaId = currentChar.id + '_' + Date.now();
+    }
+    const safeId = plazaId.replace(/[.#$/\[\]]/g, '_');
+    await db.ref('plaza/' + safeId).set({
+      id: plazaId,
+      name: currentChar.name,
+      nameEn: currentChar.nameEn,
+      face: currentChar.face,
+      outfit: sel.outfit,
+      item: sel.item,
+      buddy: sel.buddy,
+      ts: Date.now()
+    });
+    window.location.href = 'plaza.html?char=' + encodeURIComponent(plazaId);
+  } catch (e) {
+    console.error(e);
+    showToast('Connection error...');
+  }
+}
+</script></body></html>
