@@ -477,4 +477,18 @@ async function joinPlaza() {
     const safeId = plazaId.replace(/[.#$/\[\]]/g, '_');
     await db.ref('plaza/' + safeId).set({
       id: plazaId,
-      name: currentChar.na
+      name: currentChar.name,
+      nameEn: currentChar.nameEn,
+      face: currentChar.face,
+      outfit: sel.outfit,
+      item: sel.item,
+      buddy: sel.buddy,
+      ts: Date.now()
+    });
+    window.location.href = 'plaza.html?char=' + encodeURIComponent(plazaId);
+  } catch (e) {
+    console.error(e);
+    showToast('Connection error...');
+  }
+}
+</script></body></html>

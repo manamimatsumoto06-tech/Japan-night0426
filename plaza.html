@@ -470,4 +470,12 @@ s1.onload = () => {
       const ref = db.ref('plaza');
       ref.on('child_added', snap => createSprite(snap.key, snap.val()));
       ref.on('child_changed', snap => updateSprite(snap.key, snap.val()));
-      ref.on('chil
+      ref.on('child_removed', snap => removeSprite(snap.key));
+    });
+  };
+  document.head.appendChild(s2);
+};
+document.head.appendChild(s1);
+</script>
+</body>
+</html>
