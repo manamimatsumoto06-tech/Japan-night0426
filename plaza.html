@@ -45,6 +45,7 @@ body{font-family:'Helvetica Neue',Arial,sans-serif;background:#fce4ec;min-height
 </div>
 
 <button class="screenshot-btn" onclick="takeScreenshot()">📸</button>
+<button id="resetBtn" style="display:none;position:fixed;bottom:16px;left:16px;z-index:100;background:#e74c3c;color:white;border:none;padding:10px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);" onclick="resetPlaza()">🗑️ Reset Plaza</button>
 
 <script>
 const FIREBASE_CONFIG = {
@@ -437,25 +438,20 @@ function takeScreenshot() {
   bgImg.src = 'images/Background_Sakura.png';
 }
 
-// === INIT ===
-const s1 = document.createElement('script');
-s1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
-s1.onload = () => {
-  const s2 = document.createElement('script');
-  s2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js';
-  s2.onload = () => {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.database();
-    loadImages(() => {
-      const ref = db.ref('plaza');
-      ref.on('child_added', snap => createSprite(snap.key, snap.val()));
-      ref.on('child_changed', snap => updateSprite(snap.key, snap.val()));
-      ref.on('child_removed', snap => removeSprite(snap.key));
+// === ADMIN RESET ===
+if (window.location.search.includes('admin')) {
+  document.getElementById('resetBtn').style.display = 'block';
+}
+function resetPlaza() {
+  if (!confirm('Plaza を全リセットしますか？')) return;
+  if (db) {
+    db.ref('plaza').remove().then(() => {
+      Object.keys(sprites).forEach(k => removeSprite(k));
+      charCount = 0;
+      countEl.textContent = '0';
+      waitingEl.style.display = 'flex';
     });
-  };
-  document.head.appendChild(s2);
-};
-document.head.appendChild(s1);
-</script>
-</body>
-</html>
+  }
+}
+
+// ===
