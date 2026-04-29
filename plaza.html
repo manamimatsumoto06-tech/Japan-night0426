@@ -13,7 +13,7 @@ body{font-family:'Helvetica Neue',Arial,sans-serif;background:#fce4ec;min-height
 .back-link{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:white;text-decoration:none;font-size:20px;}
 .count-badge{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.25);color:white;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;}
 
-.plaza-container{position:fixed;top:0;left:0;width:100%;height:100%;background:url('images/Background_Sakura.png') center/cover no-repeat;}
+.plaza-container{position:fixed;top:0;left:0;width:100%;height:100%;background:url('images/Background_Sakura2.png') center/cover no-repeat;}
 
 .char-sprite{position:absolute;width:100px;height:100px;cursor:grab;transition:none;z-index:10;}
 .char-sprite.dragging{cursor:grabbing;z-index:50;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3));}
@@ -93,6 +93,9 @@ const IMAGE_DATA={'face_ale':'images/face_ale.png',
 'outfit_happi2':'images/outfit_happi2.png',
 'outfit_dress3':'images/outfit_dress3.png',
 'outfit_japan1':'images/outfit_japan1.png',
+'outfit_tshirts':'images/outfit_tshirts.png',
+'outfit_tshirts3':'images/outfit_tshirts3.png',
+'outfit_uniform3':'images/outfit_uniform3.png',
 'buddy_pikachu':'images/buddy_pikachu.png',
 'buddy_totoro':'images/buddy_totoro.png',
 'buddy_mario':'images/buddy_mario.png',
@@ -435,7 +438,7 @@ function takeScreenshot() {
       + '<button onclick="this.parentElement.remove()" style="margin-top:16px;padding:10px 30px;border-radius:20px;border:none;background:#fff;font-size:14px;font-weight:600;cursor:pointer;">Close</button>';
     document.body.appendChild(overlay);
   };
-  bgImg.src = 'images/Background_Sakura.png';
+  bgImg.src = 'images/Background_Sakura2.png';
 }
 
 // === ADMIN RESET ===
@@ -467,12 +470,4 @@ s1.onload = () => {
       const ref = db.ref('plaza');
       ref.on('child_added', snap => createSprite(snap.key, snap.val()));
       ref.on('child_changed', snap => updateSprite(snap.key, snap.val()));
-      ref.on('child_removed', snap => removeSprite(snap.key));
-    });
-  };
-  document.head.appendChild(s2);
-};
-document.head.appendChild(s1);
-</script>
-</body>
-<
+      ref.on('chil
